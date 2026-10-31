@@ -69,6 +69,12 @@ export function App() {
       } else {
         setUsers((prev) => [user, ...prev]);
       }
+      if (user.organization) {
+        setCompanySettings((prev) => ({
+          ...prev,
+          companyName: user.organization,
+        }));
+      }
     }
     setCurrentUser(user);
     setIsAuthenticated(true);
