@@ -68,7 +68,14 @@ export function App() {
 
   const handleLogin = (user, isNew = false) => {
     if (isNew) {
-      if (user.role === 'Customer' || user.role === 'user' || user.personaType === 'customer') {
+      if (
+        user.role === 'Customer' ||
+        user.role === 'customer' ||
+        user.role === 'User' ||
+        user.role === 'user' ||
+        user.userType === 'customer' ||
+        user.personaType === 'customer'
+      ) {
         setCustomers((prev) => [user, ...prev]);
       } else {
         setUsers((prev) => [user, ...prev]);
@@ -187,38 +194,38 @@ export function App() {
     );
   }
 
-  // 2. Identify Admin / Staff accounts
-  // All internal admin/staff accounts MUST ALWAYS see the Admin Operations Console
-  const isAdminAccount =
-    currentUser?.role === 'Super Admin' ||
-    currentUser?.role === 'Billing Manager' ||
-    currentUser?.role === 'Sales Representative' ||
-    currentUser?.role === 'Admin' ||
-    currentUser?.role === 'admin' ||
-    currentUser?.role === 'Staff' ||
-    currentUser?.role === 'staff' ||
-    currentUser?.role === 'Owner' ||
-    currentUser?.role === 'owner' ||
-    currentUser?.userType === 'admin' ||
-    currentUser?.userType === 'staff' ||
-    currentUser?.userType === 'organization' ||
-    currentUser?.email?.toLowerCase()?.endsWith('@brightloop.io') ||
-    currentUser?.id?.startsWith('USR-');
+  // 2. Identify User / Client accounts (explicit priority check)
+  const isExplicitUser =
+    currentUser?.role === 'User' ||
+    currentUser?.role === 'user' ||
+    currentUser?.role === 'Customer' ||
+    currentUser?.role === 'customer' ||
+    currentUser?.role === 'Client' ||
+    currentUser?.role === 'client' ||
+    currentUser?.userType === 'customer' ||
+    currentUser?.userType === 'user' ||
+    currentUser?.personaType === 'customer' ||
+    currentUser?.id?.startsWith('CUST-');
 
-  // 3. User view: User Portal ONLY comes after logging in on a User (Client), NOT Admin
-  const isUserAccount =
-    !isAdminAccount &&
-    (currentUser?.role === 'User' ||
-      currentUser?.role === 'user' ||
-      currentUser?.role === 'Customer' ||
-      currentUser?.role === 'customer' ||
-      currentUser?.role === 'Client' ||
-      currentUser?.role === 'client' ||
-      currentUser?.userType === 'customer' ||
-      currentUser?.userType === 'user' ||
-      currentUser?.personaType === 'customer' ||
-      currentUser?.id?.startsWith('CUST-') ||
-      Boolean(currentUser?.company));
+  // 3. Identify Admin / Staff accounts
+  const isAdminAccount =
+    !isExplicitUser &&
+    (currentUser?.role === 'Super Admin' ||
+      currentUser?.role === 'Billing Manager' ||
+      currentUser?.role === 'Sales Representative' ||
+      currentUser?.role === 'Admin' ||
+      currentUser?.role === 'admin' ||
+      currentUser?.role === 'Staff' ||
+      currentUser?.role === 'staff' ||
+      currentUser?.role === 'Owner' ||
+      currentUser?.role === 'owner' ||
+      currentUser?.userType === 'admin' ||
+      currentUser?.userType === 'staff' ||
+      currentUser?.userType === 'organization' ||
+      currentUser?.email?.toLowerCase()?.endsWith('@brightloop.io') ||
+      currentUser?.id?.startsWith('USR-'));
+
+  const isUserAccount = isExplicitUser || !isAdminAccount;
 
   if (isUserAccount) {
     return (

@@ -113,7 +113,7 @@ export class SqlAuthService {
   /**
    * Register User in SQL Database
    */
-  async registerUser({ name, email, password, roleTitle, department, orgId = 'ORG-001' }) {
+  async registerUser({ name, email, password, roleTitle = 'User', department = 'General', company = '', orgId = 'ORG-001' }) {
     const cleanEmail = email.trim().toLowerCase();
 
     try {
@@ -149,7 +149,7 @@ export class SqlAuthService {
       if (networkError.message && !networkError.message.includes('fetch')) {
         throw networkError;
       }
-      return this._localSqlRegisterUser({ name, email: cleanEmail, password, roleTitle, department });
+      return this._localSqlRegisterUser({ name, email: cleanEmail, password, roleTitle, department, company });
     }
   }
 
@@ -218,21 +218,25 @@ export class SqlAuthService {
     };
   }
 
-  _localSqlRegisterUser({ name, email, password, roleTitle, department }) {
+  _localSqlRegisterUser({ name, email, password, roleTitle = 'User', department = 'General', company = '' }) {
     const cleanEmail = email.trim().toLowerCase();
-    const newUserId = `USR-${Date.now().toString().slice(-4)}`;
+    const newUserId = `CUST-${Date.now().toString().slice(-4)}`;
+    const compName = company || `${name}'s Company`;
 
-    this.lastExecutedSql = `INSERT INTO users (id, org_id, name, email, role, department) VALUES ('${newUserId}', 'ORG-001', '${name}', '${cleanEmail}', 'user', '${department}');`;
+    this.lastExecutedSql = `INSERT INTO users (id, org_id, name, email, role, department) VALUES ('${newUserId}', 'ORG-CUST', '${name}', '${cleanEmail}', 'customer', '${department}');`;
 
     const newUser = {
       id: newUserId,
       name: name,
       email: cleanEmail,
-      role: roleTitle,
-      userType: 'user',
-      organization: 'Brightloop Technologies Inc.',
+      role: 'User',
+      userType: 'customer',
+      organization: compName,
+      company: compName,
       department: department,
       status: 'Active',
+      totalSubscriptions: 0,
+      joinedDate: new Date().toISOString().split('T')[0],
     };
 
     return {

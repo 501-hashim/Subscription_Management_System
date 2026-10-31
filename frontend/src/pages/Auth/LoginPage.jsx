@@ -34,6 +34,8 @@ export function LoginPage({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [organizationName, setOrganizationName] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [role, setRole] = useState('Member');
   const [department, setDepartment] = useState('General');
 
@@ -179,7 +181,7 @@ export function LoginPage({
       } else {
         if (registrationType === 'organization') {
           const result = await authDatabase.registerOrganization({
-            orgName: `${fullName.trim()}'s Workspace`,
+            orgName: organizationName.trim() || `${fullName.trim()}'s Workspace`,
             orgSize: '11-50 employees',
             orgIndustry: 'SaaS & Software',
             adminName: fullName.trim(),
@@ -193,8 +195,9 @@ export function LoginPage({
             name: fullName.trim(),
             email: cleanEmail,
             password: password,
-            roleTitle: role,
-            department: department,
+            roleTitle: 'User',
+            department: 'Client',
+            company: companyName.trim() || `${fullName.trim()}'s Company`,
           });
           setIsLoading(false);
           onLogin(result.user, true);
@@ -243,15 +246,15 @@ export function LoginPage({
               {mode === 'signin'
                 ? 'Welcome Back'
                 : registrationType === 'organization'
-                ? 'Register New Organization'
-                : 'Register User Account'}
+                ? 'Register Admin Workspace'
+                : 'Register Client User'}
             </h1>
             <p className="text-xs text-slate-400">
               {mode === 'signin'
                 ? 'Sign in to access your recurring subscription workspace'
                 : registrationType === 'organization'
-                ? 'Set up a company workspace to manage plans, billing & team members'
-                : 'Create your individual user profile to access assigned workspaces'}
+                ? 'Set up administrator credentials to access the full Operations Console'
+                : 'Create your subscriber profile to browse products and checkout plans'}
             </p>
           </div>
 
@@ -348,13 +351,13 @@ export function LoginPage({
                   </div>
                   <div>
                     <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <span>Organization</span>
+                      <span>Admin Setup</span>
                       {registrationType === 'organization' && (
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
                       )}
                     </div>
                     <div className="text-[10px] text-slate-400 mt-0.5 leading-snug">
-                      Create new workspace
+                      Admin Console • Full management operations
                     </div>
                   </div>
                 </button>
@@ -383,10 +386,13 @@ export function LoginPage({
                   </div>
                   <div>
                     <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <span>User</span>
+                      <span>User Setup</span>
                       {registrationType === 'user' && (
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
                       )}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5 leading-snug">
+                      User Portal • Product catalog & billing
                     </div>
                   </div>
                 </button>
@@ -405,20 +411,28 @@ export function LoginPage({
           {/* Auth Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             
-            {/* FULL NAME & ROLE (in signup mode) */}
+            {/* PREDEFINED INTERFACE FORM FIELDS (Admin-specific vs User-specific) */}
             {mode === 'signup' && (
               <div className="space-y-3 pb-3 border-b border-white/10">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
                     <UserCheck className="w-3.5 h-3.5" />
-                    {registrationType === 'organization' ? 'Primary Workspace Admin' : 'User Identity'}
+                    {registrationType === 'organization' ? 'Admin Registration Interface' : 'Client User Registration Interface'}
+                  </span>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                    registrationType === 'organization'
+                      ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
+                      : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                  }`}>
+                    {registrationType === 'organization' ? 'Predefined: Admin Console' : 'Predefined: User Portal'}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="sm:col-span-2">
+                  {/* Full Name Field */}
+                  <div className={registrationType === 'organization' ? 'sm:col-span-1' : 'sm:col-span-1'}>
                     <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                      Full Name
+                      {registrationType === 'organization' ? 'Admin Full Name' : 'User Full Name'}
                     </label>
                     <div className="relative">
                       <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -426,24 +440,64 @@ export function LoginPage({
                         type="text"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        placeholder="Enter full name"
+                        placeholder={registrationType === 'organization' ? 'e.g. Alex Morgan' : 'e.g. Sarah Jenkins'}
                         className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-950/70 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-slate-500 transition-all"
                         required
                       />
                     </div>
                   </div>
 
-                  {registrationType === 'organization' && (
-                    <div className="sm:col-span-2">
-                      <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                        Assigned Organization Role
-                      </label>
-                      <div className="w-full px-3 py-2.5 text-xs bg-slate-950/50 border border-white/10 rounded-xl text-blue-300 font-semibold flex items-center justify-between">
-                        <span>Super Admin (Workspace Owner)</span>
-                        <ShieldCheck className="w-4 h-4 text-blue-400" />
-                      </div>
+                  {/* Company/Organization Name */}
+                  <div className="sm:col-span-1">
+                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                      {registrationType === 'organization' ? 'Organization Name' : 'Company Name (Optional)'}
+                    </label>
+                    <div className="relative">
+                      <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={registrationType === 'organization' ? organizationName : companyName}
+                        onChange={(e) =>
+                          registrationType === 'organization'
+                            ? setOrganizationName(e.target.value)
+                            : setCompanyName(e.target.value)
+                        }
+                        placeholder={registrationType === 'organization' ? 'e.g. Acme Corp Inc.' : 'e.g. Apex Logistics'}
+                        className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-950/70 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-slate-500 transition-all"
+                      />
                     </div>
-                  )}
+                  </div>
+
+                  {/* Predefined Interface Indicator & Role Badge */}
+                  <div className="sm:col-span-2">
+                    {registrationType === 'organization' ? (
+                      <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/25 text-purple-200 text-xs space-y-1">
+                        <div className="flex items-center justify-between font-bold text-[11px] text-purple-300">
+                          <span className="flex items-center gap-1.5">
+                            <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
+                            Admin Console Role: Super Admin (Executive)
+                          </span>
+                          <span className="text-[10px] bg-purple-500/20 px-2 py-0.5 rounded border border-purple-500/30">11 Modules</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-snug">
+                          Grants administrative access to Executive Dashboard, Customers, Products, Plans, Quotations, Subscriptions, Invoices, Payments, Discounts, Reports, and System Settings.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-200 text-xs space-y-1">
+                        <div className="flex items-center justify-between font-bold text-[11px] text-emerald-300">
+                          <span className="flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                            User Portal Role: Client User (Subscriber)
+                          </span>
+                          <span className="text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30">Client Portal</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-snug">
+                          Grants self-service access to Product Software Catalog (CRM, Accounting, Cloud Storage), Plan Checkout, Active Subscriptions, and client-side PDF Tax Invoices.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -558,8 +612,8 @@ export function LoginPage({
                     {mode === 'signin'
                       ? 'Sign In to Workspace'
                       : registrationType === 'organization'
-                      ? 'Register Organization Workspace'
-                      : 'Register User Account'}
+                      ? 'Register Admin & Open Operations Console'
+                      : 'Register User & Open Client Portal'}
                   </span>
                   <ArrowRight className="w-4 h-4" />
                 </>
