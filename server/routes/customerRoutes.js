@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import { db } from '../db/db.js';
 import { requireCustomerAuth } from '../middleware/auth.js';
 
@@ -162,15 +162,19 @@ router.get('/products', async (req, res) => {
           name: prod.name,
           code: prod.code,
           type: prod.type,
-          category: prod.type,
+          category: prod.category || prod.type,
           salesPrice: parseFloat(prod.sales_price),
+          costPrice: parseFloat(prod.cost_price || 0),
           startingPrice,
+          badge: prod.badge || '',
+          rating: prod.rating || '98% Match',
           plansCount: plans.length,
           availablePlans: plans.map((p) => p.name),
           variants: prod.variants || [],
           status: prod.status,
           description: prod.description,
           imageUrl: prod.image_url,
+          image: prod.image_url,
           features: prod.features || [],
         };
       })

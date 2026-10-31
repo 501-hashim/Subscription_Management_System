@@ -27,11 +27,11 @@ async function runTests() {
     assert(dash.data.metrics.totalAvailableProducts > 0, 'Customer Dashboard: Total available products count');
 
     // 2. Product Listing
-    const prodRes = await fetch(`${baseUrl}/products?search=Core`, {
+    const prodRes = await fetch(`${baseUrl}/products?search=CRM`, {
       headers: { 'x-customer-id': 'CUST-001' },
     });
     const prods = await prodRes.json();
-    assert(prods.success && prods.data.length > 0 && prods.data[0].code === 'BL-CORE', 'Product Listing: Search and filter dynamic products');
+    assert(prods.success && prods.data.length > 0 && prods.data[0].code === 'BL-CRM', 'Product Listing: Search and filter dynamic products');
 
     // 3. Product Details & Plan Comparison
     const detailRes = await fetch(`${baseUrl}/products/PROD-001`, {

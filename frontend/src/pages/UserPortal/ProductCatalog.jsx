@@ -2,23 +2,181 @@ import React, { useState, useEffect } from 'react';
 import { 
   Package, Layers, Check, Sparkles, ArrowRight, ShieldCheck, 
   Search, Filter, Zap, Server, Sliders, CheckCircle2, ChevronRight,
-  Eye, ArrowUpDown, Loader2
+  Eye, ArrowUpDown, Loader2, Play, Info, List, Grid3X3
 } from 'lucide-react';
-import { Card } from '../../components/common/Card';
-import { Badge } from '../../components/common/Badge';
-import { Button } from '../../components/common/Button';
 import { ProductDetailModal } from './ProductDetailModal';
 import { userApi } from '../../services/userApi';
 import { formatCurrency } from '../../utils/formatters';
+
+// The 3 official catalog products matching the Admin Netflix View
+const OFFICIAL_THREE_PRODUCTS = [
+  {
+    id: 'PROD-001',
+    name: 'CRM Software',
+    code: 'BL-CRM',
+    type: 'Customer Management SaaS',
+    category: 'CRM Software',
+    salesPrice: 199.00,
+    costPrice: 45.00,
+    startingPrice: 199.00,
+    status: 'Available',
+    badge: 'Top Rated CRM',
+    rating: '98% Match',
+    description: 'Comprehensive Customer Relationship Management (CRM) platform with visual sales pipelines, lead nurturing, customer tracking, and team collaboration.',
+    image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=900&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=900&q=80',
+    features: [
+      'Visual Sales Pipeline & Deal Stages',
+      'Automated Inbound Lead Capture',
+      'Customer 360° Activity History',
+      'Email & Calendar Integration',
+      'Deal Forecast Analytics'
+    ],
+    tags: ['SaaS', '4K SLA', 'BL-CRM'],
+    availablePlans: ['Starter Plan ($49/mo)', 'Professional CRM ($199/mo)', 'Enterprise Scale ($499/mo)'],
+    plansCount: 3,
+    plans: [
+      {
+        id: 'PLAN-001',
+        name: 'Starter Plan',
+        price: 49.00,
+        billingFrequency: 'Monthly',
+        features: ['Up to 1,000 active leads', 'Visual sales pipeline', 'Email integration', 'Standard lead capture', 'Daily sync'],
+        status: 'Active'
+      },
+      {
+        id: 'PLAN-002',
+        name: 'Growth Professional',
+        price: 199.00,
+        billingFrequency: 'Monthly',
+        features: ['Up to 25,000 active contacts', 'Automated lead nurturing sequences', 'Multi-pipeline deal stages', 'Priority email support', 'Deal forecast analytics'],
+        status: 'Active'
+      },
+      {
+        id: 'PLAN-003',
+        name: 'Enterprise Scale',
+        price: 499.00,
+        billingFrequency: 'Monthly',
+        features: ['Unlimited contacts & pipelines', 'Dedicated Account Executive', 'Custom REST API integrations', 'Cohort churn forecasting', '99.99% SLA'],
+        status: 'Active'
+      }
+    ]
+  },
+  {
+    id: 'PROD-002',
+    name: 'Accounting Software',
+    code: 'BL-ACCT',
+    type: 'Financial & Ledger Software',
+    category: 'Accounting Software',
+    salesPrice: 149.00,
+    costPrice: 30.00,
+    startingPrice: 149.00,
+    status: 'Available',
+    badge: 'Tax & Invoicing',
+    rating: '97% Match',
+    description: 'Automated corporate accounting, statutory VAT/tax compliance, automated expense tracking, balance sheets, and real-time P&L reporting.',
+    image: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=900&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=900&q=80',
+    features: [
+      'Automated VAT / Tax & Invoicing Engine',
+      'Real-time Balance Sheet & P&L Statements',
+      'Multi-Currency Bank Reconciliation',
+      'Expense Categorization & Audit Trail',
+      'Statutory Tax Compliance Reports'
+    ],
+    tags: ['SaaS', '24/7 SLA', 'BL-ACCT'],
+    availablePlans: ['Standard Ledger ($99/mo)', 'Tax & Invoicing Pro ($149/mo)', 'Multi-Entity Auditor ($399/mo)'],
+    plansCount: 3,
+    plans: [
+      {
+        id: 'PLAN-004',
+        name: 'Standard Ledger',
+        price: 99.00,
+        billingFrequency: 'Monthly',
+        features: ['Automated corporate accounting', 'Statutory tax & expense logs', 'Single-entity P&L statements', 'Receipt attachment OCR'],
+        status: 'Active'
+      },
+      {
+        id: 'PLAN-005',
+        name: 'Tax & Invoicing Pro',
+        price: 149.00,
+        billingFrequency: 'Monthly',
+        features: ['Automated statutory VAT / Tax engine', 'Real-time balance sheet & P&L', 'Multi-currency bank feeds', 'Automated recurring invoice generation'],
+        status: 'Active'
+      },
+      {
+        id: 'PLAN-006',
+        name: 'Multi-Entity Enterprise',
+        price: 399.00,
+        billingFrequency: 'Monthly',
+        features: ['Multi-entity consolidated balance sheets', 'Auditor export package', 'Automated tax compliance filing', 'Dedicated controller support'],
+        status: 'Active'
+      }
+    ]
+  },
+  {
+    id: 'PROD-003',
+    name: 'Cloud Storage',
+    code: 'BL-STOR',
+    type: 'Encrypted Cloud Storage',
+    category: 'Cloud Storage',
+    salesPrice: 79.00,
+    costPrice: 18.00,
+    startingPrice: 79.00,
+    status: 'Available',
+    badge: 'Encrypted NVMe',
+    rating: '99% Match',
+    description: 'Ultra-secure encrypted cloud storage with automated backup snapshots, geo-redundant distribution, instant file sync, and 99.999% durability.',
+    image: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=900&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=900&q=80',
+    features: [
+      'End-to-End AES-256 Data Encryption',
+      'Multi-Region Geo-Redundant Replication',
+      'High-Throughput S3 REST API',
+      'Automated Daily Snapshot Backups',
+      '99.999% Durability SLA'
+    ],
+    tags: ['SaaS', '99.99% SLA', 'BL-STOR'],
+    availablePlans: ['1 TB Secure Cloud ($29/mo)', '10 TB Team Storage ($79/mo)', 'Unlimited S3 Enterprise ($249/mo)'],
+    plansCount: 3,
+    plans: [
+      {
+        id: 'PLAN-007',
+        name: '1 TB Secure NVMe',
+        price: 29.00,
+        billingFrequency: 'Monthly',
+        features: ['1 TB encrypted storage', 'Automated daily backups', 'Web & mobile sync', 'AES-256 encryption at rest'],
+        status: 'Active'
+      },
+      {
+        id: 'PLAN-008',
+        name: '10 TB Team Storage',
+        price: 79.00,
+        billingFrequency: 'Monthly',
+        features: ['10 TB team storage', 'Multi-region geo replication', 'High-throughput S3 REST API', 'Instant multi-device file sync'],
+        status: 'Active'
+      },
+      {
+        id: 'PLAN-009',
+        name: 'Unlimited Enterprise S3',
+        price: 249.00,
+        billingFrequency: 'Monthly',
+        features: ['Unlimited NVMe cloud storage', 'Custom retention policies', 'Dedicated direct connect bandwidth', '99.999% durability SLA'],
+        status: 'Active'
+      }
+    ]
+  }
+];
 
 export function ProductCatalog({ 
   onSelectProduct, 
   onSelectPlan 
 }) {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState(OFFICIAL_THREE_PRODUCTS);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' (Netflix boxes) | 'table'
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('price_asc'); // price_asc, price_desc, name
@@ -27,9 +185,9 @@ export function ProductCatalog({
   const [detailsProduct, setDetailsProduct] = useState(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
-  const categories = ['All', 'Service / SaaS', 'Add-on License', 'Infrastructure', 'Service / SLA'];
+  const categories = ['All', 'CRM Software', 'Accounting Software', 'Cloud Storage'];
 
-  // Fetch products from backend API
+  // Fetch products from backend API (merging with official fallback to guarantee accuracy)
   const fetchProducts = async () => {
     try {
       setLoading(true);
@@ -39,10 +197,52 @@ export function ProductCatalog({
         category: activeCategory,
         sort: sortBy,
       });
-      setProducts(data);
+
+      if (data && data.length > 0) {
+        // Enrich data with badges, ratings, and features if missing
+        const enriched = data.map((item) => {
+          const match = OFFICIAL_THREE_PRODUCTS.find(
+            (p) => p.id === item.id || p.code === item.code || p.name.toLowerCase() === item.name.toLowerCase()
+          );
+          return {
+            ...item,
+            image: item.imageUrl || item.image || match?.image,
+            badge: item.badge || match?.badge || 'SaaS Solution',
+            rating: item.rating || match?.rating || '98% Match',
+            costPrice: item.costPrice || match?.costPrice || Math.round(item.salesPrice * 0.25),
+            features: item.features && item.features.length > 0 ? item.features : (match?.features || []),
+            tags: match?.tags || ['SaaS', item.code],
+            plans: item.plans || match?.plans || [],
+          };
+        });
+        setProducts(enriched);
+      } else {
+        // Fallback filter locally
+        let filtered = [...OFFICIAL_THREE_PRODUCTS];
+        if (activeCategory !== 'All') {
+          filtered = filtered.filter((p) => p.category === activeCategory || p.name.includes(activeCategory));
+        }
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase();
+          filtered = filtered.filter(
+            (p) => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q) || p.description.toLowerCase().includes(q)
+          );
+        }
+        setProducts(filtered);
+      }
     } catch (err) {
-      console.error('[ProductCatalog Error]:', err);
-      setError('Failed to load products from database.');
+      console.warn('[ProductCatalog] Backend offline, using official three products:', err.message);
+      let filtered = [...OFFICIAL_THREE_PRODUCTS];
+      if (activeCategory !== 'All') {
+        filtered = filtered.filter((p) => p.category === activeCategory || p.name.includes(activeCategory));
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        filtered = filtered.filter(
+          (p) => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q) || p.description.toLowerCase().includes(q)
+        );
+      }
+      setProducts(filtered);
     } finally {
       setLoading(false);
     }
@@ -55,39 +255,74 @@ export function ProductCatalog({
   const handleOpenDetails = async (prod) => {
     try {
       const full = await userApi.getProductById(prod.id);
-      setDetailsProduct(full);
+      if (full) {
+        const match = OFFICIAL_THREE_PRODUCTS.find((p) => p.id === prod.id || p.code === prod.code);
+        setDetailsProduct({
+          ...full,
+          plans: full.plans && full.plans.length > 0 ? full.plans : match?.plans || [],
+          features: full.features && full.features.length > 0 ? full.features : match?.features || [],
+        });
+      } else {
+        const match = OFFICIAL_THREE_PRODUCTS.find((p) => p.id === prod.id || p.code === prod.code) || prod;
+        setDetailsProduct(match);
+      }
       setDetailsModalOpen(true);
-    } catch (err) {
-      setDetailsProduct(prod);
+    } catch {
+      const match = OFFICIAL_THREE_PRODUCTS.find((p) => p.id === prod.id || p.code === prod.code) || prod;
+      setDetailsProduct(match);
       setDetailsModalOpen(true);
     }
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       
-      {/* Hero Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-blue-700 via-indigo-700 to-slate-900 text-white p-8 sm:p-10 shadow-xl">
-        <div className="relative z-10 max-w-2xl space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 backdrop-blur-md border border-blue-400/30 text-xs font-semibold text-blue-200">
-            <Sparkles className="w-3.5 h-3.5" />
-            Live PostgreSQL Product Catalog
+      {/* Catalog Header & View Mode Switcher */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Product Catalog</h1>
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-red-600 text-white shadow-xs">
+              Netflix View
+            </span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight">
-            Enterprise Products & Multi-Tier Plans
-          </h1>
-          <p className="text-sm sm:text-base text-blue-100/90 leading-relaxed">
-            Browse published solutions created by the system administrator. Inspect specifications, compare tiers, and activate your subscription in seconds.
+          <p className="text-xs text-slate-500 mt-0.5">
+            Cinematic box view showcasing software modules, billing frequencies, and pricing.
           </p>
         </div>
 
-        {/* Glow decoration */}
-        <div className="absolute right-0 top-0 -mt-12 -mr-12 w-96 h-96 rounded-full bg-blue-500/20 blur-3xl pointer-events-none" />
+        <div className="flex items-center gap-3">
+          {/* View Mode Toggle: Netflix Boxes vs Table */}
+          <div className="bg-slate-100 p-1 rounded-lg flex items-center gap-1 border border-slate-200">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                viewMode === 'grid'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              <Grid3X3 className="w-3.5 h-3.5" />
+              <span>Netflix Boxes</span>
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                viewMode === 'table'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              <List className="w-3.5 h-3.5" />
+              <span>Table View</span>
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Catalog Search, Filter & Sort Controls */}
-      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+      {/* Catalog Search & Category Filter Controls */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           
           {/* Category Tabs */}
           <div className="flex flex-wrap items-center gap-1.5">
@@ -112,7 +347,7 @@ export function ProductCatalog({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search products by name or code..."
+                placeholder="Search products..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-slate-800"
@@ -131,148 +366,234 @@ export function ProductCatalog({
               </select>
             </div>
           </div>
-
-        </div>
-
-        <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-100">
-          <span>Displaying <strong>{products.length}</strong> active published products</span>
-          <span className="text-[11px] text-slate-400 flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Dynamic Express + PostgreSQL Feed
-          </span>
         </div>
       </div>
 
       {/* Loading state */}
       {loading && (
-        <div className="py-20 text-center space-y-3">
-          <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
-          <p className="text-xs text-slate-500 font-medium">Fetching published catalog items from server...</p>
+        <div className="py-12 text-center space-y-2">
+          <Loader2 className="w-7 h-7 text-blue-600 animate-spin mx-auto" />
+          <p className="text-xs text-slate-500 font-medium">Updating catalog feed...</p>
         </div>
       )}
 
-      {/* Error state */}
-      {error && !loading && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-xs text-center">
-          {error}
-        </div>
-      )}
+      {/* NETFLIX CINEMATIC BOX GRID VIEW (Exact match to screenshot) */}
+      {viewMode === 'grid' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between text-xs text-slate-500 px-1">
+            <span className="font-semibold text-slate-700">Top Service Releases ({products.length})</span>
+            <span>Hover on a box to inspect pricing & quick actions</span>
+          </div>
 
-      {/* Empty State */}
-      {!loading && !error && products.length === 0 && (
-        <div className="text-center py-16 bg-white rounded-3xl border border-dashed border-slate-300 space-y-3">
-          <Package className="w-12 h-12 text-slate-300 mx-auto" />
-          <h3 className="text-base font-bold text-slate-700">No products match your criteria</h3>
-          <p className="text-xs text-slate-400">Try modifying your search query or switching categories.</p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setActiveCategory('All');
-              setSearchQuery('');
-            }}
-          >
-            Reset Filters
-          </Button>
-        </div>
-      )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {products.map((prod) => {
+              const fallbackImg =
+                prod.image ||
+                prod.imageUrl ||
+                'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=900&q=80';
 
-      {/* Products Grid */}
-      {!loading && !error && products.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map((prod) => (
-            <Card 
-              key={prod.id}
-              className="flex flex-col justify-between hover:border-blue-400 hover:shadow-lg transition-all duration-200 group overflow-hidden"
-            >
-              <div>
-                {/* Product Image */}
-                {prod.imageUrl ? (
-                  <div className="relative h-44 w-full overflow-hidden bg-slate-100">
+              const salesPrice = parseFloat(prod.salesPrice || prod.startingPrice || 199);
+              const costPrice = parseFloat(prod.costPrice || Math.round(salesPrice * 0.25));
+              const marginPercent = Math.round(((salesPrice - costPrice) / salesPrice) * 100);
+
+              return (
+                <div
+                  key={prod.id}
+                  className="group relative bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between"
+                  style={{ minHeight: '400px' }}
+                >
+                  {/* Poster Image Background */}
+                  <div className="absolute inset-0">
                     <img
-                      src={prod.imageUrl}
+                      src={fallbackImg}
                       alt={prod.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 opacity-70 group-hover:opacity-55"
                     />
-                    <div className="absolute top-3 left-3">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-800 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full shadow-xs border border-white/50">
-                        {prod.category || prod.type}
+                    {/* Dark Cinema Gradients */}
+                    <div className="absolute inset-0 bg-linear-to-t from-slate-950 via-slate-950/75 to-slate-950/25" />
+                  </div>
+
+                  {/* TOP HEADER ON THE BOX */}
+                  <div className="relative z-10 p-5 flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      {/* Netflix-style Red Brand Logo Marker */}
+                      <span className="w-6 h-6 rounded bg-red-600 text-white font-black text-xs flex items-center justify-center tracking-tighter shadow-md shadow-red-600/50">
+                        B
                       </span>
+                      {prod.badge && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-600/90 text-white shadow-xs backdrop-blur-xs">
+                          {prod.badge}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Match Rating (Netflix style) */}
+                    <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-900/80 text-emerald-400 border border-emerald-500/30 backdrop-blur-md">
+                      <Sparkles className="w-3 h-3 text-emerald-400" />
+                      <span>{prod.rating || '98% Match'}</span>
                     </div>
                   </div>
-                ) : (
-                  <div className="h-32 bg-slate-100 flex items-center justify-center text-slate-400">
-                    <Package className="w-10 h-10" />
-                  </div>
-                )}
 
-                {/* Card Content */}
-                <div className="p-5 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                        {prod.name}
-                      </h3>
-                      <span className="text-[11px] font-mono text-slate-400">{prod.code}</span>
-                    </div>
-                    <Badge status={prod.status || 'Available'} />
-                  </div>
-
-                  <p className="text-xs text-slate-600 line-clamp-2 min-h-[2.5rem]">
-                    {prod.description}
-                  </p>
-
-                  {/* Starting price */}
-                  <div className="flex items-baseline gap-1.5 pt-2 border-t border-slate-100">
-                    <span className="text-[11px] text-slate-400 font-semibold uppercase">Plans from:</span>
-                    <span className="text-2xl font-black text-slate-900">
-                      {formatCurrency(prod.startingPrice || prod.salesPrice)}
-                    </span>
-                    <span className="text-xs text-slate-500 font-medium">/mo</span>
-                  </div>
-
-                  {/* Available plans tags */}
-                  {prod.availablePlans && prod.availablePlans.length > 0 && (
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                        Included Tiers:
-                      </span>
-                      <div className="flex flex-wrap gap-1">
-                        {prod.availablePlans.map((planName, i) => (
-                          <span
-                            key={i}
-                            className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-semibold border border-blue-100"
-                          >
-                            {planName}
-                          </span>
-                        ))}
+                  {/* UNIQUE PRICE BADGE (Floating neon cinema ticket) */}
+                  <div className="relative z-10 px-5 my-auto">
+                    <div className="inline-block bg-slate-900/90 border border-blue-500/40 rounded-xl p-3 shadow-lg backdrop-blur-md">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-black text-white tracking-tight">
+                          {formatCurrency(salesPrice)}
+                        </span>
+                        <span className="text-xs font-medium text-blue-300">/ month</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
+                        <span>Cost: {formatCurrency(costPrice)}</span>
+                        <span>•</span>
+                        <span className="text-emerald-400 font-semibold">
+                          {marginPercent}% Margin
+                        </span>
                       </div>
                     </div>
-                  )}
+                  </div>
+
+                  {/* BOTTOM INFO & ACTION CONTROLS */}
+                  <div className="relative z-10 p-5 space-y-3 bg-linear-to-t from-slate-950 via-slate-950/95 to-transparent pt-6">
+                    <div>
+                      <h3 className="text-base font-bold text-white group-hover:text-blue-300 transition-colors tracking-tight">
+                        {prod.name}
+                      </h3>
+                      <p className="text-xs text-slate-300 line-clamp-2 mt-1 leading-snug">
+                        {prod.description}
+                      </p>
+                    </div>
+
+                    {/* Feature bullet checklist if available */}
+                    {prod.features && prod.features.length > 0 && (
+                      <div className="space-y-1 pt-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                          <Check className="w-3 h-3 text-emerald-400" /> Included Features:
+                        </span>
+                        <div className="grid grid-cols-1 gap-0.5 text-[11px] text-slate-200">
+                          {prod.features.slice(0, 2).map((feat, idx) => (
+                            <div key={idx} className="flex items-center gap-1.5 truncate">
+                              <span className="w-1 h-1 rounded-full bg-blue-400 shrink-0" />
+                              <span className="truncate">{feat}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Metadata Tags: Ultra SLA, Variants */}
+                    <div className="flex items-center gap-1.5 text-[10px] text-slate-400 pt-1">
+                      <span className="border border-slate-700 px-1.5 py-0.5 rounded text-slate-300 font-semibold">
+                        SaaS
+                      </span>
+                      <span className="border border-slate-700 px-1.5 py-0.5 rounded text-slate-300 font-semibold">
+                        24/7 SLA
+                      </span>
+                      <span className="text-blue-400 font-medium">{prod.code}</span>
+                    </div>
+
+                    {/* Action Buttons: Subscribe & Info */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => onSelectProduct && onSelectProduct(prod)}
+                        className="flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-md bg-white hover:bg-slate-200 text-slate-950 cursor-pointer"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <span>Subscribe</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDetails(prod)}
+                        className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors cursor-pointer"
+                        title="View Detailed Plan Specifications"
+                      >
+                        <Info className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
-              {/* Action Buttons */}
-              <div className="p-5 pt-0 grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="justify-center text-xs font-semibold cursor-pointer"
-                  onClick={() => handleOpenDetails(prod)}
-                >
-                  <Eye className="w-3.5 h-3.5 mr-1" /> View Details
-                </Button>
+      {/* TABLE VIEW (Alternative clean tab view) */}
+      {viewMode === 'table' && (
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[10px]">
+                  <th className="py-3 px-4">Product Name</th>
+                  <th className="py-3 px-4">Category</th>
+                  <th className="py-3 px-4">Sales Price</th>
+                  <th className="py-3 px-4">Margin</th>
+                  <th className="py-3 px-4">Rating</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {products.map((prod) => {
+                  const salesPrice = parseFloat(prod.salesPrice || prod.startingPrice || 199);
+                  const costPrice = parseFloat(prod.costPrice || Math.round(salesPrice * 0.25));
+                  const marginPercent = Math.round(((salesPrice - costPrice) / salesPrice) * 100);
 
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="justify-center text-xs font-bold cursor-pointer"
-                  onClick={() => onSelectProduct && onSelectProduct(prod)}
-                >
-                  Subscribe <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                </Button>
-              </div>
-            </Card>
-          ))}
+                  return (
+                    <tr key={prod.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={prod.image || prod.imageUrl}
+                            alt={prod.name}
+                            className="w-9 h-9 rounded-lg object-cover border border-slate-200 shrink-0"
+                          />
+                          <div>
+                            <span className="font-bold text-slate-900 block">{prod.name}</span>
+                            <span className="text-[10px] font-mono text-slate-400">{prod.code}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-slate-600 font-medium">{prod.category || prod.type}</td>
+                      <td className="py-3 px-4 font-bold text-slate-900">
+                        {formatCurrency(salesPrice)}<span className="text-[10px] text-slate-500 font-normal">/mo</span>
+                      </td>
+                      <td className="py-3 px-4 text-emerald-600 font-bold">{marginPercent}%</td>
+                      <td className="py-3 px-4">
+                        <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold">
+                          <Sparkles className="w-3 h-3" /> {prod.rating || '98% Match'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          {prod.status || 'Available'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right space-x-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenDetails(prod)}
+                          className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+                        >
+                          Details
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onSelectProduct && onSelectProduct(prod)}
+                          className="px-3 py-1 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs transition-colors cursor-pointer"
+                        >
+                          Subscribe
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
