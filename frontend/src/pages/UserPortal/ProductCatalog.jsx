@@ -372,29 +372,8 @@ export function ProductCatalog({
                     <div className="absolute inset-0 bg-linear-to-t from-slate-950 via-slate-950/75 to-slate-950/25" />
                   </div>
 
-                  {/* TOP HEADER ON THE BOX */}
-                  <div className="relative z-10 p-5 flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      {/* Netflix-style Red Brand Logo Marker */}
-                      <span className="w-6 h-6 rounded bg-red-600 text-white font-black text-xs flex items-center justify-center tracking-tighter shadow-md shadow-red-600/50">
-                        B
-                      </span>
-                      {prod.badge && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-600/90 text-white shadow-xs backdrop-blur-xs">
-                          {prod.badge}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Match Rating (Netflix style) */}
-                    <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-900/80 text-emerald-400 border border-emerald-500/30 backdrop-blur-md">
-                      <Sparkles className="w-3 h-3 text-emerald-400" />
-                      <span>{prod.rating || '98% Match'}</span>
-                    </div>
-                  </div>
-
-                  {/* UNIQUE PRICE BADGE (Floating neon cinema ticket) */}
-                  <div className="relative z-10 px-5 my-auto">
+                  {/* PRICE BADGE */}
+                  <div className="relative z-10 p-5">
                     <div className="inline-block bg-slate-900/90 border border-blue-500/40 rounded-xl p-3 shadow-lg backdrop-blur-md">
                       <div className="flex items-baseline gap-1">
                         <span className="text-2xl font-black text-white tracking-tight">
