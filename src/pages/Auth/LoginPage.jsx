@@ -50,7 +50,7 @@ export function LoginPage({
   const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password);
   const isPasswordStrong = hasMinLength && hasUpperCase && hasLowerCase && hasSpecialChar;
 
-  // Preset demo personas covering the three roles defined in Odoo problem statement
+  // Preset demo personas covering the three roles defined for access control
   const demoPersonas = [
     {
       id: 'USR-01',
@@ -126,7 +126,7 @@ export function LoginPage({
       return;
     }
 
-    // 2. Password validation based on Odoo problem statement
+    // 2. Password validation based on security policy
     if (mode === 'signup') {
       if (!isPasswordStrong) {
         setErrorMessage(
@@ -267,7 +267,7 @@ export function LoginPage({
 
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-400/20 text-blue-300 text-xs font-medium mb-4">
                 <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                <span>Odoo Challenge: Unified Recurring Billing</span>
+                <span>Unified Recurring Billing & Invoicing</span>
               </div>
 
               <h2 className="text-2xl font-extrabold tracking-tight text-white leading-tight">
@@ -311,7 +311,7 @@ export function LoginPage({
 
             {/* Hackathon Badge Footer */}
             <div className="pt-4 border-t border-white/10 text-[11px] text-slate-400 flex items-center justify-between relative z-10">
-              <span>Odoo X Make-A-Ton Hackathon</span>
+              <span>Enterprise Cloud Edition</span>
               <span className="text-slate-300 font-mono text-[10px]">Strict RBAC</span>
             </div>
           </div>
@@ -565,7 +565,7 @@ export function LoginPage({
                   {mode === 'signup' && (
                     <div className="mt-2.5 p-2.5 bg-slate-50 border border-slate-200 rounded-lg space-y-1.5">
                       <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-                        Password Requirements (Odoo §3):
+                        Password Requirements:
                       </div>
                       <div className="grid grid-cols-2 gap-1.5 text-[11px]">
                         <div className={`flex items-center gap-1.5 ${hasMinLength ? 'text-emerald-700 font-semibold' : 'text-slate-500'}`}>
