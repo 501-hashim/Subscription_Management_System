@@ -1,5 +1,5 @@
 # Brightloop Software – Subscription Management System
-> **Odoo X Make-A-Ton Virtual Hackathon Project**  
+> **Brightloop Subscription Hackathon Project**  
 > *Frontend Skeleton Prototype & Architecture Foundation*
 
 ---
@@ -136,5 +136,5 @@ The compiled, production-ready static assets will be output in the `dist/` direc
 
 ## 👥 Hackathon Team & Project Info
 - **Lead Developer:** Hashim ([@501-hashim](https://github.com/501-hashim))
-- **Event:** Odoo X Make-A-Ton Virtual Hackathon
+- **Event:** Brightloop Subscription Hackathon
 - **Organization:** Brightloop Software Inc.
