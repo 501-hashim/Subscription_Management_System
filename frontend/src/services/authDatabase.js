@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SQL Authentication & Database Client Service
  * Connects directly to the Backend SQLite Relational Database Engine (/api/v1/auth)
  * with automatic fallback, live SQL query transparency, and Google OAuth support.

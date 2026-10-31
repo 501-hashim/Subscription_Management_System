@@ -26,6 +26,7 @@ import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { Modal } from '../../components/common/Modal';
 import { formatCurrency, formatDate } from '../../utils/formatters';
+import { downloadInvoicePDF } from '../../utils/invoicePdfGenerator';
 
 export function InvoicesPage({
   invoices = [],
@@ -82,9 +83,9 @@ export function InvoicesPage({
   const [lineItems, setLineItems] = useState([
     {
       id: 'item-1',
-      description: products[0]?.name || 'Growth Professional Subscription',
+      description: products[0]?.name || 'CRM Software',
       quantity: 1,
-      unitPrice: products[0]?.price || 179.0,
+      unitPrice: products[0]?.salesPrice || products[0]?.price || 199.0,
     },
   ]);
 
@@ -306,9 +307,9 @@ export function InvoicesPage({
     setLineItems([
       {
         id: 'item-1',
-        description: products[0]?.name || 'Growth Professional Subscription',
+        description: products[0]?.name || 'CRM Software',
         quantity: 1,
-        unitPrice: products[0]?.price || 179.0,
+        unitPrice: products[0]?.salesPrice || products[0]?.price || 199.0,
       },
     ]);
 
@@ -318,9 +319,10 @@ export function InvoicesPage({
     setTimeout(() => setDownloadNotice(null), 4000);
   };
 
-  // Download notice simulation
+  // Download official PDF voucher
   const handleDownloadInvoice = (inv) => {
-    setDownloadNotice(`Downloading Official Tax Invoice Voucher PDF: ${inv.id} (${inv.customer})...`);
+    setDownloadNotice(`Generating and downloading PDF for ${inv.id} (${inv.customer})...`);
+    downloadInvoicePDF(inv, companySettings);
     setTimeout(() => {
       setDownloadNotice(null);
     }, 3500);
