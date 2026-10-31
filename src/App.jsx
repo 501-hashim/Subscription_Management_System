@@ -13,6 +13,7 @@ import { PaymentsPage } from './pages/Payments/PaymentsPage';
 import { DiscountsPage } from './pages/Discounts/DiscountsPage';
 import { ReportsPage } from './pages/Reports/ReportsPage';
 import { SettingsPage } from './pages/Settings/SettingsPage';
+import { CursorFollower } from './components/common/CursorFollower';
 
 import {
   initialDashboardData,
@@ -131,24 +132,30 @@ export function App() {
   // 1. Unauthenticated view: Render the upgraded Login & Registration Page
   if (!isAuthenticated) {
     return (
-      <LoginPage
-        onLogin={handleLogin}
-        availableUsers={users}
-        availableCustomers={customers}
-      />
+      <>
+        <CursorFollower enableSpotlight={true} enableCursorDot={true} />
+        <LoginPage
+          onLogin={handleLogin}
+          availableUsers={users}
+          availableCustomers={customers}
+        />
+      </>
     );
   }
 
   // 2. Customer view: Customer Portal (Isolated from Admin settings/ops)
   if (currentUser?.role === 'Customer' || currentUser?.personaType === 'customer') {
     return (
-      <CustomerPortal
-        customerUser={currentUser}
-        subscriptions={subscriptions}
-        invoices={invoices}
-        payments={payments}
-        onLogout={handleLogout}
-      />
+      <>
+        <CursorFollower enableSpotlight={false} enableCursorDot={true} />
+        <CustomerPortal
+          customerUser={currentUser}
+          subscriptions={subscriptions}
+          invoices={invoices}
+          payments={payments}
+          onLogout={handleLogout}
+        />
+      </>
     );
   }
 
@@ -156,12 +163,14 @@ export function App() {
   const isAdmin = currentUser?.role === 'Super Admin';
 
   return (
-    <Layout
-      activeTab={activeTab}
-      onSelectTab={setActiveTab}
-      currentUser={currentUser}
-      onLogout={handleLogout}
-    >
+    <>
+      <CursorFollower enableSpotlight={false} enableCursorDot={true} />
+      <Layout
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+      >
       {activeTab === 'dashboard' && (
         <DashboardPage
           dashboardData={dashboardData}
@@ -246,6 +255,7 @@ export function App() {
         />
       )}
     </Layout>
+    </>
   );
 }
 
