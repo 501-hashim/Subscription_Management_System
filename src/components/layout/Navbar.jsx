@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Search, Bell, Menu, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Search, Bell, Menu, ShieldCheck, CheckCircle2, ShoppingBag } from 'lucide-react';
+import { Button } from '../common/Button';
 
-export function Navbar({ onToggleSidebar, activeTitle, globalSearch, setGlobalSearch }) {
+export function Navbar({ onToggleSidebar, activeTitle, globalSearch, setGlobalSearch, onSwitchToCustomer }) {
   const [showNotifications, setShowNotifications] = useState(false);
 
   const notifications = [
@@ -27,10 +28,10 @@ export function Navbar({ onToggleSidebar, activeTitle, globalSearch, setGlobalSe
         </div>
       </div>
 
-      {/* Center/Right section: Search, notifications, user info */}
-      <div className="flex items-center gap-4">
+      {/* Center/Right section: Search, notifications, switch to customer, user info */}
+      <div className="flex items-center gap-3 sm:gap-4">
         {/* Global Search Bar */}
-        <div className="relative hidden md:block w-64 lg:w-80">
+        <div className="relative hidden md:block w-60 lg:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
@@ -40,6 +41,20 @@ export function Navbar({ onToggleSidebar, activeTitle, globalSearch, setGlobalSe
             className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-slate-800 placeholder-slate-400 transition-all"
           />
         </div>
+
+        {/* Switch to Customer Portal CTA */}
+        {onSwitchToCustomer && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onSwitchToCustomer}
+            className="border-blue-200 bg-blue-50/50 text-blue-700 hover:bg-blue-100/70 font-semibold text-xs whitespace-nowrap"
+            title="Open the customer storefront & self-service portal"
+          >
+            <ShoppingBag className="w-3.5 h-3.5 mr-1.5 text-blue-600" />
+            <span className="hidden sm:inline">Customer</span> Storefront
+          </Button>
+        )}
 
         {/* Notifications Dropdown */}
         <div className="relative">

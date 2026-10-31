@@ -11,6 +11,7 @@ import { PaymentsPage } from './pages/Payments/PaymentsPage';
 import { DiscountsPage } from './pages/Discounts/DiscountsPage';
 import { ReportsPage } from './pages/Reports/ReportsPage';
 import { SettingsPage } from './pages/Settings/SettingsPage';
+import { CustomerPortalPage } from './pages/CustomerPortal/CustomerPortalPage';
 
 import {
   initialDashboardData,
@@ -27,6 +28,8 @@ import {
 } from './data/mockData';
 
 export function App() {
+  // Mode switcher: 'admin' or 'customer'
+  const [viewMode, setViewMode] = useState('customer'); // Default to customer or easy switch
   const [activeTab, setActiveTab] = useState('dashboard');
 
   // Application state
@@ -42,7 +45,7 @@ export function App() {
   const [users, setUsers] = useState(initialUsers);
   const [companySettings, setCompanySettings] = useState(initialCompanySettings);
 
-  // State modification handlers
+  // State modification handlers for Admin
   const handleAddCustomer = (newCustomer) => {
     setCustomers([newCustomer, ...customers]);
   };
@@ -75,8 +78,149 @@ export function App() {
     setCompanySettings(updated);
   };
 
+  // State modification handlers for Customer Portal actions
+  const handleAddSubscription = (newSub, newInvoice, newPayment) => {
+    setSubscriptions((prev) => [newSub, ...prev]);
+    if (newInvoice) setInvoices((prev) => [newInvoice, ...prev]);
+    if (newPayment) setPayments((prev) => [newPayment, ...prev]);
+
+    // Also increment customer's totalSubscriptions count
+    setCustomers((prev) =>
+      prev.map((c) =>
+        c.id === newSub.customerId || c.company === newSub.customer || c.name === newSub.customer
+          ? { ...c, totalSubscriptions: (c.totalSubscriptions || 0) + 1 }
+          : c
+      )
+    );
+  };
+
+  const handleToggleAutoRenew = (subId) => {
+    setSubscriptions((prev) =>
+      prev.map((s) => (s.id === subId ? { ...s, autoRenew: !s.autoRenew } : s))
+    );
+  };
+
+  const handleCancelSubscription = (subId) => {
+    setSubscriptions((prev) =>
+      prev.map((s) =>
+        s.id === subId ? { ...s, status: 'Cancelled', autoRenew: false } : s
+      )
+    );
+  };
+
+  const handlePayInvoice = (invoiceId) => {
+    const targetInvoice = invoices.find((i) => i.id === invoiceId);
+    setInvoices((prev) =>
+      prev.map((i) => (i.id === invoiceId ? { ...i, status: 'Paid' } : i))
+    );
+    if (targetInvoice) {
+      const newPay = {
+        id: `PAY-${Math.floor(7730 + Math.random() * 500)}`,
+        customer: targetInvoice.customer,
+        invoiceNumber: targetInvoice.id,
+        paymentMethod: 'Credit Card (Instant Settlement)',
+        amount: targetInvoice.amount,
+        paymentDate: new Date().toLocaleString(),
+        status: 'Completed',
+        transactionRef: `tx_pay_${Math.random().toString(36).substring(2, 9)}`,
+      };
+      setPayments((prev) => [newPay, ...prev]);
+    }
+  };
+
+  const handleAcceptQuotation = (quotationId) => {
+    const targetQuote = quotations.find((q) => q.id === quotationId);
+    if (!targetQuote) return;
+
+    setQuotations((prev) =>
+      prev.map((q) => (q.id === quotationId ? { ...q, status: 'Accepted' } : q))
+    );
+
+    const today = new Date().toISOString().split('T')[0];
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    const expiryDate = nextMonth.toISOString().split('T')[0];
+
+    const subId = `SUB-${Math.floor(8200 + Math.random() * 1000)}`;
+    const invId = `INV-2025-${Math.floor(1095 + Math.random() * 100)}`;
+    const payId = `PAY-${Math.floor(7750 + Math.random() * 100)}`;
+
+    const newSub = {
+      id: subId,
+      customer: targetQuote.customer,
+      customerId: targetQuote.customerId,
+      plan: targetQuote.products,
+      startDate: today,
+      expiryDate: expiryDate,
+      billingCycle: 'Monthly',
+      amount: targetQuote.totalAmount,
+      status: 'Active',
+      nextBillingDate: expiryDate,
+      autoRenew: true,
+    };
+
+    const newInvoice = {
+      id: invId,
+      customer: targetQuote.customer,
+      customerId: targetQuote.customerId,
+      invoiceDate: today,
+      dueDate: today,
+      amount: targetQuote.totalAmount,
+      status: 'Paid',
+      paymentMethod: 'Commercial Purchase Order / Card',
+      items: [
+        {
+          desc: targetQuote.products,
+          qty: 1,
+          unit: targetQuote.totalAmount,
+          total: targetQuote.totalAmount,
+        },
+      ],
+    };
+
+    const newPayment = {
+      id: payId,
+      customer: targetQuote.customer,
+      invoiceNumber: invId,
+      paymentMethod: 'Purchase Order / Credit Card',
+      amount: targetQuote.totalAmount,
+      paymentDate: new Date().toLocaleString(),
+      status: 'Completed',
+      transactionRef: `tx_quote_${quotationId}`,
+    };
+
+    handleAddSubscription(newSub, newInvoice, newPayment);
+  };
+
+  // If in Customer Portal mode:
+  if (viewMode === 'customer') {
+    return (
+      <CustomerPortalPage
+        products={products}
+        plans={plans}
+        subscriptions={subscriptions}
+        invoices={invoices}
+        payments={payments}
+        discounts={discounts}
+        customers={customers}
+        quotations={quotations}
+        onSwitchToAdmin={() => setViewMode('admin')}
+        onAddSubscription={handleAddSubscription}
+        onToggleAutoRenew={handleToggleAutoRenew}
+        onCancelSubscription={handleCancelSubscription}
+        onPayInvoice={handlePayInvoice}
+        onAcceptQuotation={handleAcceptQuotation}
+      />
+    );
+  }
+
+  // Otherwise in Admin Operations & Billing mode:
   return (
-    <Layout activeTab={activeTab} onSelectTab={setActiveTab}>
+    <Layout
+      activeTab={activeTab}
+      onSelectTab={setActiveTab}
+      onSwitchToCustomer={() => setViewMode('customer')}
+    >
       {activeTab === 'dashboard' && (
         <DashboardPage
           dashboardData={dashboardData}
