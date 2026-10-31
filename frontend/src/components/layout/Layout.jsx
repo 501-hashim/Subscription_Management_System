@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Sidebar, navItems } from './Sidebar';
 import { Navbar } from './Navbar';
 
@@ -11,7 +11,7 @@ export function Layout({
   onSwitchUser,
   children,
 }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [globalSearch, setGlobalSearch] = useState('');
 
   const currentItem = navItems.find((item) => item.id === activeTab) || navItems[0];

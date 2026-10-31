@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SQL Authentication & Database Client Service
  * Connects directly to the Backend SQLite Relational Database Engine (/api/v1/auth)
  * with automatic fallback, live SQL query transparency, and Google OAuth support.
@@ -196,9 +196,11 @@ export class SqlAuthService {
   // Client-Side Local SQL Fallbacks
   _localSqlLogin(email, password) {
     const users = JSON.parse(localStorage.getItem(`${STORAGE_PREFIX}users`) || 'null') || [
+      { id: 'CUST-001', org_id: 'ORG-CUST-1', name: 'Sarah Jenkins', email: 'sarah.jenkins@acmecorp.com', password_hash: 'SecurePass2025!', role: 'customer', role_title: 'User', department: 'Procurement', company: 'Acme Corporation' },
+      { id: 'CUST-002', org_id: 'ORG-CUST-2', name: 'David Chen', email: 'd.chen@apexlogistics.io', password_hash: 'SecurePass2025!', role: 'customer', role_title: 'User', department: 'Operations', company: 'Apex Global Logistics' },
       { id: 'USR-001', org_id: 'ORG-001', name: 'Hashim (Lead)', email: 'hashim@brightloop.io', password_hash: 'SecurePass2025!', role: 'admin', role_title: 'Super Admin (Owner)', department: 'Engineering' },
-      { id: 'USR-002', org_id: 'ORG-001', name: 'Sarah Connor', email: 'sarah.c@brightloop.io', password_hash: 'SecurePass2025!', role: 'user', role_title: 'Billing Manager', department: 'Finance' },
-      { id: 'USR-003', org_id: 'ORG-001', name: 'Liam Vance', email: 'liam.v@brightloop.io', password_hash: 'SecurePass2025!', role: 'user', role_title: 'Sales Representative', department: 'Sales' },
+      { id: 'USR-002', org_id: 'ORG-001', name: 'Sarah Connor', email: 'sarah.c@brightloop.io', password_hash: 'SecurePass2025!', role: 'staff', role_title: 'Billing Manager', department: 'Finance' },
+      { id: 'USR-003', org_id: 'ORG-001', name: 'Liam Vance', email: 'liam.v@brightloop.io', password_hash: 'SecurePass2025!', role: 'staff', role_title: 'Sales Representative', department: 'Sales' },
     ];
 
     this.lastExecutedSql = `SELECT * FROM users WHERE LOWER(email) = '${email}';`;
@@ -212,15 +214,18 @@ export class SqlAuthService {
       throw new Error('Incorrect password. Please verify credentials.');
     }
 
+    const isCustomerUser = user.role === 'customer' || user.id?.startsWith('CUST-') || user.role === 'User';
+
     return {
       success: true,
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role === 'admin' ? 'Super Admin' : user.role_title,
-        userType: user.role,
-        organization: 'Brightloop Technologies Inc.',
+        role: isCustomerUser ? 'User' : (user.role === 'admin' ? 'Super Admin' : (user.role_title || 'Billing Manager')),
+        userType: isCustomerUser ? 'customer' : (user.role === 'admin' ? 'admin' : 'staff'),
+        organization: user.company || 'Brightloop Technologies Inc.',
+        company: user.company || '',
         department: user.department,
         status: 'Active',
       },

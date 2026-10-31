@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Zap, Package, Layers, Repeat, Receipt, FileText, UserCheck, 
   ArrowLeft, ArrowRight, Sparkles, Building, ShoppingBag, ShieldCheck, 
@@ -32,7 +32,7 @@ export function UserPortalPage({
   onToggleAutoRenew,
   onCancelSubscription,
 }) {
-  const [activeUserTab, setActiveUserTab] = useState('dashboard'); // 'dashboard', 'catalog', 'subscriptions', 'payments', 'notifications', 'profile'
+  const [activeUserTab, setActiveUserTab] = useState('catalog'); // 'dashboard', 'catalog', 'subscriptions', 'payments', 'notifications', 'profile'
   
   // Use logged in user if provided, or default to first user ID
   const initialUserId = currentUser?.id || customers[0]?.id || 'CUST-001';
@@ -168,6 +168,18 @@ export function UserPortalPage({
           {/* Navigation Tabs */}
           <nav className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 overflow-x-auto text-xs">
             <button
+              onClick={() => setActiveUserTab('catalog')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                activeUserTab === 'catalog'
+                  ? 'bg-white text-blue-700 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Package className="w-4 h-4" />
+              <span>Products</span>
+            </button>
+
+            <button
               onClick={() => setActiveUserTab('dashboard')}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-semibold transition-all whitespace-nowrap cursor-pointer ${
                 activeUserTab === 'dashboard'
@@ -178,19 +190,6 @@ export function UserPortalPage({
               <LayoutDashboard className="w-4 h-4" />
               <span>Dashboard</span>
             </button>
-
-            <button
-              onClick={() => setActiveUserTab('catalog')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                activeUserTab === 'catalog'
-                  ? 'bg-white text-blue-700 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <ShoppingBag className="w-4 h-4" />
-              <span>Product Catalog</span>
-            </button>
-
             <button
               onClick={() => setActiveUserTab('subscriptions')}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-semibold transition-all whitespace-nowrap cursor-pointer ${
