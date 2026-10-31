@@ -32,22 +32,23 @@ import {
 export function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  // Authentication State
+  // Authentication State: defaults to unauthenticated so user starts at Login Page
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     try {
-      const explicitOut = localStorage.getItem('brightloop_logged_in') === 'false';
-      return !explicitOut;
+      const explicitIn = localStorage.getItem('brightloop_logged_in') === 'true';
+      const savedUser = localStorage.getItem('brightloop_current_user');
+      return explicitIn && Boolean(savedUser);
     } catch {
-      return true;
+      return false;
     }
   });
 
   const [currentUser, setCurrentUser] = useState(() => {
     try {
-      const saved = localStorage.getItem('brightloop_current_user') || localStorage.getItem('brightloop_admin_session');
-      return saved ? JSON.parse(saved) : initialUsers[0];
+      const saved = localStorage.getItem('brightloop_current_user');
+      return saved ? JSON.parse(saved) : null;
     } catch {
-      return initialUsers[0];
+      return null;
     }
   });
 
@@ -186,16 +187,11 @@ export function App() {
   }
 
   // 2. User view: User Portal (Dedicated self-service interface after login)
-  const isUserAccount =
-    currentUser?.role === 'Customer' ||
-    currentUser?.role === 'user' ||
-    currentUser?.role === 'customer' ||
-    currentUser?.personaType === 'customer' ||
-    currentUser?.id?.startsWith('CUST-') ||
-    currentUser?.email?.includes('@acmecorp') ||
-    currentUser?.email?.includes('@apexlogistics') ||
-    currentUser?.email?.includes('@novatech') ||
-    currentUser?.email?.includes('@solardrive');
+  const isSuperAdmin =
+    currentUser?.role === 'Super Admin' ||
+    currentUser?.email?.toLowerCase() === 'hashim@brightloop.io';
+
+  const isUserAccount = !isSuperAdmin;
 
   if (isUserAccount) {
     return (
