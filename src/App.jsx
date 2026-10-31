@@ -158,6 +158,10 @@ export function App() {
         <InvoicesPage
           invoices={invoices}
           customers={customers}
+          products={products}
+          plans={plans}
+          discounts={discounts}
+          companySettings={companySettings}
           onAddInvoice={handleAddInvoice}
         />
       )}
