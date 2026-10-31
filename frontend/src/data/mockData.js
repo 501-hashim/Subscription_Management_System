@@ -69,6 +69,12 @@ export const initialProducts = [
     badge: 'Top Rated CRM',
     category: 'CRM Software',
     duration: 'Monthly / Annual',
+    features: [
+      'Visual Sales Pipeline & Lead Kanban',
+      'Automated Email Sequences & Tracking',
+      'Customer 360° Interaction History',
+      'Revenue Forecasting & Conversion KPIs',
+    ],
   },
   {
     id: 'PROD-002',
@@ -85,6 +91,12 @@ export const initialProducts = [
     badge: 'Tax & Invoicing',
     category: 'Accounting Software',
     duration: 'Billed Monthly',
+    features: [
+      'Automated VAT / Tax & Invoicing Engine',
+      'Real-time Balance Sheet & P&L Statements',
+      'Multi-Currency Bank Reconciliation',
+      'Expense Management & Digital Audit Receipts',
+    ],
   },
   {
     id: 'PROD-003',
@@ -101,6 +113,12 @@ export const initialProducts = [
     badge: 'Encrypted NVMe',
     category: 'Cloud Storage',
     duration: 'Unlimited Bandwidth',
+    features: [
+      'End-to-End AES-256 Data Encryption',
+      'Automated Hourly Snapshot Backups',
+      'High-Speed S3 Compatible REST API',
+      '99.999% SLA High-Availability Storage',
+    ],
   },
 ];
 

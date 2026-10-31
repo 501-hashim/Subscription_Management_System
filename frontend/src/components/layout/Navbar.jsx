@@ -1,5 +1,23 @@
 import React, { useState } from 'react';
-import { Search, Bell, Menu, ShieldCheck, CheckCircle2, LogOut, ChevronDown, User, Sparkles } from 'lucide-react';
+import {
+  Search,
+  Bell,
+  Menu,
+  ShieldCheck,
+  CheckCircle2,
+  LogOut,
+  ChevronDown,
+  User,
+  Sparkles,
+  MoreVertical,
+  Package,
+  Receipt,
+  Zap,
+  Layers,
+  Settings,
+  CreditCard,
+  Percent,
+} from 'lucide-react';
 
 export function Navbar({
   onToggleSidebar,
@@ -8,9 +26,13 @@ export function Navbar({
   setGlobalSearch,
   currentUser = { name: 'Hashim', role: 'Super Admin', email: 'hashim@brightloop.io', department: 'Engineering' },
   onLogout,
+  onSelectTab,
+  users,
+  onSwitchUser,
 }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showFeaturesMenu, setShowFeaturesMenu] = useState(false);
 
   const notifications = [
     { id: 1, title: 'Invoice INV-2025-1084 is overdue', time: '10m ago', unread: true },
@@ -109,6 +131,140 @@ export function Navbar({
                   className="text-[11px] text-blue-600 font-semibold hover:underline cursor-pointer"
                 >
                   Mark all as read
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Three-Dot Menu on Top Corner: Features & Quick System Modules */}
+        <div className="relative">
+          <button
+            onClick={() => {
+              setShowFeaturesMenu(!showFeaturesMenu);
+              setShowNotifications(false);
+              setShowUserMenu(false);
+            }}
+            className={`p-2 rounded-xl border transition-all cursor-pointer ${
+              showFeaturesMenu
+                ? 'bg-blue-600 text-white border-blue-500 shadow-sm'
+                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800 border-transparent hover:border-slate-200'
+            }`}
+            title="Features & System Modules"
+          >
+            <MoreVertical className="w-4 h-4" />
+          </button>
+
+          {showFeaturesMenu && (
+            <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-200/90 py-3 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="px-4 pb-2 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900">Platform Features & Modules</h4>
+                  <p className="text-[10px] text-slate-400">Quick module launcher</p>
+                </div>
+                <button
+                  onClick={() => setShowFeaturesMenu(false)}
+                  className="text-slate-400 hover:text-slate-700 text-xs font-bold px-1"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="p-2 grid grid-cols-2 gap-1.5 text-xs max-h-80 overflow-y-auto">
+                <button
+                  onClick={() => {
+                    setShowFeaturesMenu(false);
+                    if (onSelectTab) onSelectTab('dashboard');
+                  }}
+                  className="flex items-center gap-2 p-2 rounded-xl hover:bg-slate-50 transition-colors text-left"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                    <Zap className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-800 text-[11px] block">Dashboard</span>
+                    <span className="text-[9px] text-slate-400">Admin/Org</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowFeaturesMenu(false);
+                    if (onSelectTab) onSelectTab('products');
+                  }}
+                  className="flex items-center gap-2 p-2 rounded-xl hover:bg-slate-50 transition-colors text-left"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                    <Package className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-800 text-[11px] block">Products</span>
+                    <span className="text-[9px] text-slate-400">CRM, Acct, Cloud</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowFeaturesMenu(false);
+                    if (onSelectTab) onSelectTab('invoices');
+                  }}
+                  className="flex items-center gap-2 p-2 rounded-xl hover:bg-slate-50 transition-colors text-left"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <Receipt className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-800 text-[11px] block">Invoices</span>
+                    <span className="text-[9px] text-slate-400">Tax & Discounts</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowFeaturesMenu(false);
+                    if (onSelectTab) onSelectTab('customers');
+                  }}
+                  className="flex items-center gap-2 p-2 rounded-xl hover:bg-slate-50 transition-colors text-left"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                    <User className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-800 text-[11px] block">Customers</span>
+                    <span className="text-[9px] text-slate-400">Directory</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowFeaturesMenu(false);
+                    if (onSelectTab) onSelectTab('plans');
+                  }}
+                  className="flex items-center gap-2 p-2 rounded-xl hover:bg-slate-50 transition-colors text-left"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <Layers className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-800 text-[11px] block">Plans</span>
+                    <span className="text-[9px] text-slate-400">Subscriptions</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowFeaturesMenu(false);
+                    if (onSelectTab) onSelectTab('discounts');
+                  }}
+                  className="flex items-center gap-2 p-2 rounded-xl hover:bg-slate-50 transition-colors text-left"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                    <Percent className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-800 text-[11px] block">Discounts</span>
+                    <span className="text-[9px] text-slate-400">Coupons</span>
+                  </div>
                 </button>
               </div>
             </div>
