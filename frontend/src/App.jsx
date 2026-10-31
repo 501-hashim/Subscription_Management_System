@@ -272,6 +272,8 @@ export function App() {
             subscriptions={subscriptions}
             invoices={invoices}
             payments={payments}
+            currentUser={currentUser || users[0]}
+            companySettings={companySettings}
             onNavigate={setActiveTab}
           />
         )}

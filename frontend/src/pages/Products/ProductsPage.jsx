@@ -14,7 +14,8 @@ import {
   Zap,
   Tag,
   ChevronRight,
-  X
+  X,
+  CheckCircle2,
 } from 'lucide-react';
 import { DataTable } from '../../components/common/DataTable';
 import { Badge } from '../../components/common/Badge';
@@ -258,7 +259,7 @@ export function ProductsPage({ products = [], onAddProduct }) {
                       )}
                     </div>
 
-                    {/* Match Rating (Netflix style) */}
+                    {/* TOP RIGHT CORNER: Match Rating */}
                     <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-900/80 text-emerald-400 border border-emerald-500/30 backdrop-blur-md">
                       <Sparkles className="w-3 h-3 text-emerald-400" />
                       <span>{prod.rating || '98% Match'}</span>
@@ -293,6 +294,28 @@ export function ProductsPage({ products = [], onAddProduct }) {
                       <p className="text-xs text-slate-300 line-clamp-2 mt-1 leading-snug">
                         {prod.description}
                       </p>
+                    </div>
+
+                    {/* KEY FEATURES (SHOWN BY DEFAULT) */}
+                    <div className="space-y-1.5 pt-2 border-t border-slate-800/80">
+                      <div className="flex items-center justify-between text-[10px] font-bold text-blue-400">
+                        <span className="flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-blue-400" /> Included Features
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-normal">Standard</span>
+                      </div>
+                      <div className="space-y-1">
+                        {(prod.features || [
+                          'Visual Sales Pipeline & Lead Kanban',
+                          'Automated Invoicing & Tax Engine',
+                          'Enterprise High-Speed SLA'
+                        ]).slice(0, 3).map((feat, fIdx) => (
+                          <div key={fIdx} className="flex items-center gap-1.5 text-[11px] text-slate-200">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            <span className="truncate">{feat}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
                     {/* Metadata Tags: Ultra SLA, Variants */}
@@ -408,6 +431,26 @@ export function ProductsPage({ products = [], onAddProduct }) {
               <p className="text-slate-300 leading-relaxed text-sm">
                 {selectedProduct.description}
               </p>
+
+              {/* Included Features Checklist */}
+              {selectedProduct.features && selectedProduct.features.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-slate-800">
+                  <p className="font-semibold text-blue-400 uppercase text-[10px] tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-blue-400" /> Key Features & Capabilities Included
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {selectedProduct.features.map((feat, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2 p-2 rounded-lg bg-slate-950/70 border border-slate-800 text-slate-200"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span className="font-medium text-xs leading-snug">{feat}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Variants Pill List */}
               <div>

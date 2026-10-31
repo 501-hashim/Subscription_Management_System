@@ -1,13 +1,24 @@
 import React, { useState } from 'react';
-import { Search, Bell, Menu, ShieldCheck, CheckCircle2, LogOut, ChevronDown, User, Sparkles } from 'lucide-react';
+import {
+  Search,
+  Bell,
+  Menu,
+  ShieldCheck,
+  CheckCircle2,
+  LogOut,
+  ChevronDown,
+} from 'lucide-react';
 
 export function Navbar({
   onToggleSidebar,
   activeTitle,
   globalSearch,
   setGlobalSearch,
-  currentUser = { name: 'Hashim', role: 'Super Admin', email: 'hashim@brightloop.io', department: 'Engineering' },
+  currentUser = { name: 'Admin', role: 'Super Admin', email: 'admin@brightloop.io', department: 'Engineering' },
   onLogout,
+  onSelectTab,
+  users,
+  onSwitchUser,
 }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);

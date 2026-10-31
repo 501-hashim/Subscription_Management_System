@@ -1,7 +1,7 @@
 ﻿/**
  * SQL Authentication & Database Client Service
  * Connects directly to the Backend SQLite Relational Database Engine (/api/v1/auth)
- * with automatic fallback, live SQL query transparency, and Google OAuth support.
+ * with automatic fallback and live SQL query transparency.
  */
 
 const API_BASE = 'http://localhost:8000/api/v1/auth';
@@ -65,62 +65,22 @@ export class SqlAuthService {
   }
 
   /**
-   * Execute Google OAuth User Sign-In
-   */
-  async googleLogin({ email, name, googleId, avatarUrl, token }) {
-    const cleanEmail = email.trim().toLowerCase();
-
-    try {
-      const res = await fetch(`${API_BASE}/google-login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: cleanEmail,
-          name: name || cleanEmail.split('@')[0],
-          googleId: googleId || `goog-${Date.now()}`,
-          avatarUrl: avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanEmail}`,
-          token: token || null,
-        }),
-        signal: AbortSignal.timeout(4500),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        this.lastExecutedSql = data.sql_query;
-        this.isBackendOnline = true;
-        return {
-          success: true,
-          user: data.user,
-          sqlQuery: this.lastExecutedSql,
-          tokenVerified: data.tokenVerified,
-          engine: 'SQLite 3 (Backend Relational DB)',
-        };
-      } else {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || 'Google OAuth SQL authentication failed.');
-      }
-    } catch (networkError) {
-      if (networkError.message && !networkError.message.includes('fetch')) {
-        throw networkError;
-      }
-      return this._localSqlGoogleLogin({ email: cleanEmail, name, googleId, avatarUrl });
-    }
-  }
-
-  /**
    * Register Organization in SQL Database
    */
   async registerOrganization({ orgName, orgSize, orgIndustry, adminName, adminEmail, password }) {
     const cleanEmail = adminEmail.trim().toLowerCase();
+    const resolvedOrgName = orgName || `${adminName}'s Workspace`;
+    const resolvedOrgSize = orgSize || '11-50 employees';
+    const resolvedOrgIndustry = orgIndustry || 'SaaS & Software';
 
     try {
       const res = await fetch(`${API_BASE}/register-organization`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          orgName,
-          orgSize,
-          orgIndustry,
+          orgName: resolvedOrgName,
+          orgSize: resolvedOrgSize,
+          orgIndustry: resolvedOrgIndustry,
           adminName,
           adminEmail: cleanEmail,
           password,
@@ -130,7 +90,7 @@ export class SqlAuthService {
 
       if (res.ok) {
         const data = await res.json();
-        this.lastExecutedSql = `INSERT INTO organizations (id, name, slug, size, industry)\nVALUES ('ORG-AUTO', '${orgName}', '${orgName.toLowerCase().replace(/\s+/g, '-')}', '${orgSize}', '${orgIndustry}');\n\nINSERT INTO users (id, org_id, name, email, role)\nVALUES ('USR-AUTO', 'ORG-AUTO', '${adminName}', '${cleanEmail}', 'admin');`;
+        this.lastExecutedSql = `INSERT INTO organizations (id, name, slug, size, industry) VALUES ('${data.user.orgId}', '${resolvedOrgName}', '${resolvedOrgName.toLowerCase().replace(/ /g, '-')}', '${resolvedOrgSize}', '${resolvedOrgIndustry}');\nINSERT INTO users (id, org_id, name, email, role) VALUES ('${data.user.id}', '${data.user.orgId}', '${adminName}', '${cleanEmail}', 'admin');`;
         this.isBackendOnline = true;
         return {
           success: true,
@@ -140,13 +100,13 @@ export class SqlAuthService {
         };
       } else {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || 'SQL Organization registration failed.');
+        throw new Error(errData.detail || 'Organization registration failed.');
       }
     } catch (networkError) {
       if (networkError.message && !networkError.message.includes('fetch')) {
         throw networkError;
       }
-      return this._localSqlRegisterOrg({ orgName, orgSize, orgIndustry, adminName, adminEmail, password });
+      return this._localSqlRegisterOrg({ orgName: resolvedOrgName, orgSize: resolvedOrgSize, orgIndustry: resolvedOrgIndustry, adminName, adminEmail, password });
     }
   }
 
@@ -173,7 +133,7 @@ export class SqlAuthService {
 
       if (res.ok) {
         const data = await res.json();
-        this.lastExecutedSql = `INSERT INTO users (id, org_id, name, email, role, role_title, department)\nVALUES ('USR-AUTO', '${orgId}', '${name}', '${cleanEmail}', 'user', '${roleTitle}', '${department}');`;
+        this.lastExecutedSql = `INSERT INTO users (id, org_id, name, email, role, department)\nVALUES ('${data.user.id}', '${orgId}', '${name}', '${cleanEmail}', 'user', '${department}');`;
         this.isBackendOnline = true;
         return {
           success: true,
@@ -183,36 +143,33 @@ export class SqlAuthService {
         };
       } else {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || 'SQL User registration failed.');
+        throw new Error(errData.detail || 'User registration failed.');
       }
     } catch (networkError) {
       if (networkError.message && !networkError.message.includes('fetch')) {
         throw networkError;
       }
-      return this._localSqlRegisterUser({ name, email, password, roleTitle, department, orgId });
+      return this._localSqlRegisterUser({ name, email: cleanEmail, password, roleTitle, department });
     }
   }
 
-  // Client-Side Local SQL Fallbacks
+  // --- LOCAL FALLBACK EMULATION ---
   _localSqlLogin(email, password) {
     const users = JSON.parse(localStorage.getItem(`${STORAGE_PREFIX}users`) || 'null') || [
       { id: 'CUST-001', org_id: 'ORG-CUST-1', name: 'Sarah Jenkins', email: 'sarah.jenkins@acmecorp.com', password_hash: 'SecurePass2025!', role: 'customer', role_title: 'User', department: 'Procurement', company: 'Acme Corporation' },
       { id: 'CUST-002', org_id: 'ORG-CUST-2', name: 'David Chen', email: 'd.chen@apexlogistics.io', password_hash: 'SecurePass2025!', role: 'customer', role_title: 'User', department: 'Operations', company: 'Apex Global Logistics' },
-      { id: 'USR-001', org_id: 'ORG-001', name: 'Hashim (Lead)', email: 'hashim@brightloop.io', password_hash: 'SecurePass2025!', role: 'admin', role_title: 'Super Admin (Owner)', department: 'Engineering' },
+      { id: 'USR-001', org_id: 'ORG-001', name: 'Admin User', email: 'admin@brightloop.io', password_hash: 'SecurePass2025!', role: 'admin', role_title: 'Super Admin (Owner)', department: 'Engineering' },
       { id: 'USR-002', org_id: 'ORG-001', name: 'Sarah Connor', email: 'sarah.c@brightloop.io', password_hash: 'SecurePass2025!', role: 'staff', role_title: 'Billing Manager', department: 'Finance' },
       { id: 'USR-003', org_id: 'ORG-001', name: 'Liam Vance', email: 'liam.v@brightloop.io', password_hash: 'SecurePass2025!', role: 'staff', role_title: 'Sales Representative', department: 'Sales' },
     ];
 
-    this.lastExecutedSql = `SELECT * FROM users WHERE LOWER(email) = '${email}';`;
+    const user = users.find((u) => u.email.toLowerCase() === email);
 
-    const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
     if (!user) {
-      throw new Error('No registered account found with this email in SQL database.');
+      throw new Error('Account not found in local SQL mock database.');
     }
 
-    if (user.password_hash !== password && password !== 'SecurePass2025!') {
-      throw new Error('Incorrect password. Please verify credentials.');
-    }
+    this.lastExecutedSql = `SELECT u.id, u.org_id, u.name, u.role, o.name AS organization\nFROM users u\nLEFT JOIN organizations o ON u.org_id = o.id\nWHERE LOWER(u.email) = '${email}';`;
 
     const isCustomerUser = user.role === 'customer' || user.id?.startsWith('CUST-') || user.role === 'User';
 
@@ -234,43 +191,13 @@ export class SqlAuthService {
     };
   }
 
-  _localSqlGoogleLogin({ email, name, googleId, avatarUrl }) {
-    const displayName = name || email.split('@')[0];
-    const avatar = avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`;
-    const gid = googleId || `goog-${Date.now()}`;
-
-    this.lastExecutedSql = `-- Google OAuth Fallback SQL Simulation
-SELECT * FROM users WHERE LOWER(email) = '${email}';
--- Upsert Google User Record
-INSERT INTO users (id, org_id, name, email, role, auth_provider, google_id)
-VALUES ('USR-GOOG', 'ORG-001', '${displayName}', '${email}', 'user', 'google', '${gid}')
-ON CONFLICT(email) DO UPDATE SET last_login = CURRENT_TIMESTAMP;`;
-
-    return {
-      success: true,
-      user: {
-        id: `USR-GOOG-${Date.now().toString().slice(-4)}`,
-        name: displayName,
-        email: email,
-        role: 'Google Authenticated User',
-        userType: 'user',
-        organization: 'Brightloop Technologies Inc.',
-        department: 'Operations',
-        status: 'Active',
-        authProvider: 'google',
-        avatarUrl: avatar,
-      },
-      sqlQuery: this.lastExecutedSql,
-      engine: 'Client SQL Store (Google OAuth)',
-    };
-  }
-
   _localSqlRegisterOrg({ orgName, orgSize, orgIndustry, adminName, adminEmail, password }) {
     const cleanEmail = adminEmail.trim().toLowerCase();
+    const resolvedOrgName = orgName || `${adminName}'s Workspace`;
     const newUserId = `USR-${Date.now().toString().slice(-4)}`;
     const newOrgId = `ORG-${Date.now().toString().slice(-4)}`;
 
-    this.lastExecutedSql = `INSERT INTO organizations (id, name, size, industry) VALUES ('${newOrgId}', '${orgName}', '${orgSize}', '${orgIndustry}');\nINSERT INTO users (id, org_id, name, email, role) VALUES ('${newUserId}', '${newOrgId}', '${adminName}', '${cleanEmail}', 'admin');`;
+    this.lastExecutedSql = `INSERT INTO organizations (id, name, size, industry) VALUES ('${newOrgId}', '${resolvedOrgName}', '11-50 employees', 'SaaS & Software');\nINSERT INTO users (id, org_id, name, email, role) VALUES ('${newUserId}', '${newOrgId}', '${adminName}', '${cleanEmail}', 'admin');`;
 
     const newUser = {
       id: newUserId,
@@ -278,7 +205,7 @@ ON CONFLICT(email) DO UPDATE SET last_login = CURRENT_TIMESTAMP;`;
       email: cleanEmail,
       role: 'Super Admin',
       userType: 'admin',
-      organization: orgName,
+      organization: resolvedOrgName,
       department: 'Executive',
       status: 'Active',
     };

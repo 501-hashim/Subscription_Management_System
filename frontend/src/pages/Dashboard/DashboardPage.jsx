@@ -24,13 +24,17 @@ import {
   Server,
   Layers,
   ArrowUpRight,
-  ShieldCheck
+  ShieldCheck,
+  ShieldAlert,
+  Lock,
+  Building,
 } from 'lucide-react';
 import { StatsCard } from '../../components/common/StatsCard';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { formatCurrency, formatDate } from '../../utils/formatters';
+import { isAuthorizedForDashboard } from '../../utils/authPermissions';
 import {
   AreaChart,
   Area,
@@ -45,8 +49,11 @@ export function DashboardPage({
   dashboardData,
   subscriptions = [],
   invoices = [],
+  currentUser,
+  companySettings = {},
   onNavigate,
 }) {
+  const isAuthorized = isAuthorizedForDashboard(currentUser);
   const { kpis } = dashboardData;
 
   // Interactive Graph Controls
@@ -178,8 +185,85 @@ export function DashboardPage({
     return null;
   };
 
+  // Access Control Guard: Dashboard is strictly restricted to Admin or Organization accounts
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200/90 shadow-xl p-8 text-center space-y-5 animate-in fade-in zoom-in-95 duration-150">
+          <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200/80 flex items-center justify-center mx-auto text-amber-600 shadow-inner">
+            <Lock className="w-8 h-8" />
+          </div>
+
+          <div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-100/80 text-amber-900 border border-amber-300">
+              <ShieldAlert className="w-3.5 h-3.5 text-amber-700" />
+              Restricted Dashboard Clearance
+            </span>
+            <h2 className="text-xl font-bold text-slate-900 mt-3">Admin or Organization Only</h2>
+            <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+              This operational executive dashboard, revenue velocity telemetry, and product sales dendrogram are reserved for <strong>System Administrators</strong> and verified <strong>Organization accounts</strong>.
+            </p>
+          </div>
+
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-xs text-slate-600 space-y-1 text-left">
+            <div className="flex justify-between">
+              <span className="text-slate-400">Current Account:</span>
+              <span className="font-semibold text-slate-800">{currentUser?.name || 'Standard Account'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Role:</span>
+              <span className="font-semibold text-rose-600">{currentUser?.role || 'User / Customer'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Access Status:</span>
+              <span className="font-semibold text-amber-600">Restricted (Non-Org)</span>
+            </div>
+          </div>
+
+          <div className="pt-2 flex flex-col sm:flex-row gap-2 justify-center">
+            <Button variant="outline" size="sm" onClick={() => onNavigate('products')}>
+              Browse Products
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => onNavigate('invoices')}>
+              View Invoices
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Organization & Admin Access Active Clearance Banner */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 px-4 rounded-xl bg-slate-900 text-white shadow-sm border border-slate-800">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-blue-600/30 border border-blue-500/40 flex items-center justify-center text-blue-400 shrink-0">
+            <Building className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-white tracking-tight">
+                {currentUser?.organization
+                  ? `Organization Workspace: ${currentUser.organization}`
+                  : 'Enterprise Admin & Organization Workspace'}
+              </span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                <ShieldCheck className="w-3 h-3 mr-1 text-emerald-400" /> Authorized
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              Restricted executive view: MRR/ARR velocity telemetry, financial forecasts & product sales dendrogram
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-slate-400 text-[11px]">Active Persona:</span>
+          <span className="font-bold text-blue-400 bg-slate-800/90 px-2.5 py-1 rounded-lg border border-slate-700 text-[11px]">
+            {currentUser?.role?.includes('Admin') ? '🛡️ Admin Role' : '🏢 Organization'}
+          </span>
+        </div>
+      </div>
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
