@@ -53,10 +53,7 @@ export function Navbar({
         >
           <Menu className="w-5 h-5" />
         </button>
-        <div>
-          <h2 className="text-sm font-semibold text-slate-900">{activeTitle}</h2>
-          <p className="text-[11px] text-slate-400">Brightloop Software • Subscription Management Hub</p>
-        </div>
+        <h2 className="text-sm font-semibold text-slate-900">{activeTitle}</h2>
       </div>
 
       {/* Center/Right section: Search, notifications, user info */}
@@ -162,34 +159,6 @@ export function Navbar({
                   </div>
                 </div>
               </div>
-
-              {/* Quick Admin Role Switching */}
-              {users.length > 0 && onSwitchUser && (
-                <div className="px-4 py-2 border-b border-slate-100">
-                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Switch Active Admin Role
-                  </p>
-                  <div className="space-y-1">
-                    {users.slice(0, 3).map((u) => (
-                      <button
-                        key={u.id}
-                        onClick={() => {
-                          onSwitchUser(u);
-                          setShowUserMenu(false);
-                        }}
-                        className={`w-full text-left px-2 py-1.5 rounded-md text-xs flex items-center justify-between transition-colors ${
-                          u.email === user.email
-                            ? 'bg-blue-50 text-blue-700 font-semibold'
-                            : 'hover:bg-slate-50 text-slate-600'
-                        }`}
-                      >
-                        <span className="truncate">{u.name}</span>
-                        <span className="text-[10px] text-slate-400 font-normal">{u.role?.split(' ')[0]}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Action Links */}
               <div className="px-2 py-1 border-b border-slate-100">

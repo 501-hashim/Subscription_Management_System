@@ -77,18 +77,6 @@ export function Sidebar({ activeTab, onSelectTab, isCollapsed }) {
           );
         })}
       </div>
-
-      {/* Sidebar Footer info */}
-      {!isCollapsed && (
-        <div className="p-3 border-t border-slate-100 bg-slate-50/50 m-2 rounded-xl">
-          <div className="flex items-center justify-between text-[11px] text-slate-500">
-            <span>Odoo X Make-A-Ton</span>
-            <span className="inline-block px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-mono text-[9px] font-bold">
-              v1.0-proto
-            </span>
-          </div>
-        </div>
-      )}
     </aside>
   );
 }
