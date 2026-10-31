@@ -14,7 +14,7 @@ export function Navbar({
   activeTitle,
   globalSearch,
   setGlobalSearch,
-  currentUser = { name: 'Hashim', role: 'Super Admin', email: 'hashim@brightloop.io', department: 'Engineering' },
+  currentUser = { name: 'Admin', role: 'Super Admin', email: 'admin@brightloop.io', department: 'Engineering' },
   onLogout,
   onSelectTab,
   users,

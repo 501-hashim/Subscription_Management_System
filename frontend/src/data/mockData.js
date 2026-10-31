@@ -377,8 +377,8 @@ export const initialDiscounts = [
 export const initialUsers = [
   {
     id: 'USR-01',
-    name: 'Hashim (Lead)',
-    email: 'hashim@brightloop.io',
+    name: 'Admin User',
+    email: 'admin@brightloop.io',
     role: 'Super Admin',
     department: 'Engineering',
     status: 'Active',

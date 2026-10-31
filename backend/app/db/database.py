@@ -34,13 +34,12 @@ def init_db():
         org_id TEXT NOT NULL,
         name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
-        password_hash TEXT DEFAULT 'OAuth-Google-Secured',
+        password_hash TEXT DEFAULT 'SecurePass2025!',
         role TEXT NOT NULL DEFAULT 'user',
         role_title TEXT DEFAULT 'Member',
         department TEXT DEFAULT 'Operations',
         status TEXT DEFAULT 'Active',
         auth_provider TEXT DEFAULT 'local',
-        google_id TEXT,
         avatar_url TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_login TIMESTAMP,
@@ -66,8 +65,6 @@ def init_db():
     existing_cols = [row["name"] for row in cursor.fetchall()]
     if "auth_provider" not in existing_cols:
         cursor.execute("ALTER TABLE users ADD COLUMN auth_provider TEXT DEFAULT 'local';")
-    if "google_id" not in existing_cols:
-        cursor.execute("ALTER TABLE users ADD COLUMN google_id TEXT;")
     if "avatar_url" not in existing_cols:
         cursor.execute("ALTER TABLE users ADD COLUMN avatar_url TEXT;")
 
@@ -91,17 +88,17 @@ def init_db():
 
         # Seed Users
         cursor.execute("""
-        INSERT INTO users (id, org_id, name, email, password_hash, role, role_title, department, status, auth_provider, google_id, last_login)
+        INSERT INTO users (id, org_id, name, email, password_hash, role, role_title, department, status, auth_provider, last_login)
         VALUES
-            ('USR-001', 'ORG-001', 'Hashim (Lead)', 'hashim@brightloop.io', 'SecurePass2025!', 'admin', 'Super Admin (Owner)', 'Engineering', 'Active', 'local', 'goog-hashim-101', CURRENT_TIMESTAMP),
-            ('USR-002', 'ORG-001', 'Sarah Connor', 'sarah.c@brightloop.io', 'SecurePass2025!', 'user', 'Billing Manager', 'Finance', 'Active', 'local', 'goog-sarah-102', CURRENT_TIMESTAMP),
-            ('USR-003', 'ORG-001', 'Liam Vance', 'liam.v@brightloop.io', 'SecurePass2025!', 'user', 'Sales Representative', 'Sales', 'Active', 'local', 'goog-liam-103', CURRENT_TIMESTAMP);
+            ('USR-001', 'ORG-001', 'Super Admin', 'admin@brightloop.io', 'SecurePass2025!', 'admin', 'Super Admin (Owner)', 'Engineering', 'Active', 'local', CURRENT_TIMESTAMP),
+            ('USR-002', 'ORG-001', 'Sarah Connor', 'sarah.c@brightloop.io', 'SecurePass2025!', 'user', 'Billing Manager', 'Finance', 'Active', 'local', CURRENT_TIMESTAMP),
+            ('USR-003', 'ORG-001', 'Liam Vance', 'liam.v@brightloop.io', 'SecurePass2025!', 'user', 'Sales Representative', 'Sales', 'Active', 'local', CURRENT_TIMESTAMP);
         """)
 
         # Seed initial log
         cursor.execute("""
         INSERT INTO login_audit_logs (email, action, user_id, auth_provider)
-        VALUES ('hashim@brightloop.io', 'SYSTEM_INITIALIZATION_SEED', 'USR-001', 'system');
+        VALUES ('admin@brightloop.io', 'SYSTEM_INITIALIZATION_SEED', 'USR-001', 'system');
         """)
 
     conn.commit()

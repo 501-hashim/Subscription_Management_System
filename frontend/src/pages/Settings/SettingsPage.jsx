@@ -231,11 +231,11 @@ export function SettingsPage({ companySettings, users, isAdmin = true, onSaveCom
           <CardContent className="space-y-4 text-xs">
             <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
               <div className="w-16 h-16 rounded-full bg-linear-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xl shadow-md">
-                H
+                A
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900">Hashim</h3>
-                <p className="text-slate-500">hashim@brightloop.io</p>
+                <h3 className="text-base font-bold text-slate-900">Admin</h3>
+                <p className="text-slate-500">admin@brightloop.io</p>
                 <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-700 mt-1">
                   Super Admin • Lead Developer
                 </span>
@@ -247,7 +247,7 @@ export function SettingsPage({ companySettings, users, isAdmin = true, onSaveCom
                 <label className="block font-medium text-slate-700 mb-1">Display Name</label>
                 <input
                   type="text"
-                  defaultValue="Hashim"
+                  defaultValue="Admin"
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50"
                   readOnly
                 />
@@ -256,7 +256,7 @@ export function SettingsPage({ companySettings, users, isAdmin = true, onSaveCom
                 <label className="block font-medium text-slate-700 mb-1">GitHub Account</label>
                 <input
                   type="text"
-                  defaultValue="501-hashim"
+                  defaultValue="brightloop-admin"
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 font-mono"
                   readOnly
                 />
