@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.api.v1.api import api_router
+from app.db.session import check_db_connection
 
 def create_application() -> FastAPI:
     app = FastAPI(
@@ -25,10 +26,12 @@ def create_application() -> FastAPI:
     # Health check probe
     @app.get("/health", tags=["System Health"])
     def health_check():
+        db_status = check_db_connection()
         return {
-            "status": "healthy",
+            "status": "healthy" if db_status.get("connected") else "degraded",
             "service": settings.APP_NAME,
             "version": settings.APP_VERSION,
+            "database": db_status,
             "odoo_target": settings.ODOO_URL
         }
 
