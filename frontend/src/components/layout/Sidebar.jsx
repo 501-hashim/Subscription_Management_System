@@ -12,7 +12,9 @@ import {
   BarChart3,
   Settings,
   Zap,
+  Lock,
 } from 'lucide-react';
+import { isAuthorizedForDashboard } from '../../utils/authPermissions';
 
 export const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -28,7 +30,8 @@ export const navItems = [
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
-export function Sidebar({ activeTab, onSelectTab, isCollapsed }) {
+export function Sidebar({ activeTab, onSelectTab, isCollapsed, currentUser }) {
+  const isDashboardAllowed = isAuthorizedForDashboard(currentUser);
   return (
     <aside
       className={`bg-[#0b0f19] text-slate-300 border-r border-slate-800/80 transition-all duration-300 flex flex-col shrink-0 ${
@@ -74,7 +77,26 @@ export function Sidebar({ activeTab, onSelectTab, isCollapsed }) {
             >
               <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
               {!isCollapsed && <span className="truncate">{item.label}</span>}
-              {!isCollapsed && isActive && (
+              {!isCollapsed && item.id === 'dashboard' && (
+                <span
+                  className={`ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 ${
+                    isDashboardAllowed
+                      ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                      : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                  }`}
+                  title={isDashboardAllowed ? 'Admin / Organization Access' : 'Admin & Organization Restricted'}
+                >
+                  {isDashboardAllowed ? (
+                    'Org/Admin'
+                  ) : (
+                    <>
+                      <Lock className="w-2.5 h-2.5" />
+                      <span>Restricted</span>
+                    </>
+                  )}
+                </span>
+              )}
+              {!isCollapsed && isActive && item.id !== 'dashboard' && (
                 <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
               )}
             </button>
