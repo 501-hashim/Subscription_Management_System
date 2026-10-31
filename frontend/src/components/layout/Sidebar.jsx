@@ -81,7 +81,6 @@ export function Sidebar({ activeTab, onSelectTab, isCollapsed }) {
           );
         })}
       </div>
-
       {/* Sidebar Footer */}
       {!isCollapsed && (
         <div className="p-3 border-t border-slate-800/80 bg-slate-950/40 m-2 rounded-xl">

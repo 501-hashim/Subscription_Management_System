@@ -32,6 +32,25 @@ import {
 export function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
 
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    try {
+      const explicitOut = localStorage.getItem('brightloop_logged_in') === 'false';
+      return !explicitOut;
+    } catch {
+      return true;
+    }
+  });
+
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('brightloop_current_user') || localStorage.getItem('brightloop_admin_session');
+      return saved ? JSON.parse(saved) : initialUsers[0];
+    } catch {
+      return initialUsers[0];
+    }
+  });
+
   // Application state
   const [dashboardData] = useState(initialDashboardData);
   const [customers, setCustomers] = useState(initialCustomers);
@@ -44,24 +63,6 @@ export function App() {
   const [discounts, setDiscounts] = useState(initialDiscounts);
   const [users, setUsers] = useState(initialUsers);
   const [companySettings, setCompanySettings] = useState(initialCompanySettings);
-
-  // Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    try {
-      return localStorage.getItem('brightloop_logged_in') === 'true';
-    } catch {
-      return false;
-    }
-  });
-
-  const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem('brightloop_current_user');
-      return saved ? JSON.parse(saved) : initialUsers[0];
-    } catch {
-      return initialUsers[0];
-    }
-  });
 
   const handleLogin = (user, isNew = false) => {
     if (isNew) {
@@ -90,10 +91,20 @@ export function App() {
   const handleLogout = () => {
     setIsAuthenticated(false);
     try {
-      localStorage.removeItem('brightloop_logged_in');
+      localStorage.setItem('brightloop_logged_in', 'false');
+      localStorage.removeItem('brightloop_current_user');
+      localStorage.removeItem('brightloop_admin_session');
     } catch (e) {
       console.error('LocalStorage clear failed:', e);
     }
+  };
+
+  const handleSwitchUser = (newUser) => {
+    try {
+      localStorage.setItem('brightloop_admin_session', JSON.stringify(newUser));
+      localStorage.setItem('brightloop_current_user', JSON.stringify(newUser));
+    } catch {}
+    setCurrentUser(newUser);
   };
 
   // State modification handlers
@@ -168,8 +179,10 @@ export function App() {
       <Layout
         activeTab={activeTab}
         onSelectTab={setActiveTab}
-        currentUser={currentUser}
+        currentUser={currentUser || users[0]}
         onLogout={handleLogout}
+        users={users}
+        onSwitchUser={handleSwitchUser}
       >
       {activeTab === 'dashboard' && (
         <DashboardPage
@@ -220,6 +233,10 @@ export function App() {
         <InvoicesPage
           invoices={invoices}
           customers={customers}
+          products={products}
+          plans={plans}
+          discounts={discounts}
+          companySettings={companySettings}
           onAddInvoice={handleAddInvoice}
         />
       )}
