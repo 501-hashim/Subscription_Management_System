@@ -100,15 +100,11 @@ export function App() {
     setCompanySettings(updated);
   };
 
-  if (!currentUser) {
-    return <LoginPage onLogin={setCurrentUser} users={users} />;
-  }
-
   return (
     <Layout
       activeTab={activeTab}
       onSelectTab={setActiveTab}
-      currentUser={currentUser}
+      currentUser={currentUser || users[0]}
       onLogout={handleLogout}
       users={users}
       onSwitchUser={handleSwitchUser}
