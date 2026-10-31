@@ -14,9 +14,13 @@ import {
   Zap,
   Calendar,
   CheckCircle2,
-  Clock,
-  ArrowRight,
-  ShieldCheck
+  GitBranch,
+  Network,
+  Package,
+  Layers,
+  Flame,
+  Award,
+  SlidersHorizontal
 } from 'lucide-react';
 import { StatsCard } from '../../components/common/StatsCard';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/common/Card';
@@ -26,9 +30,6 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 import {
   AreaChart,
   Area,
-  Bar,
-  ComposedChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -47,6 +48,9 @@ export function DashboardPage({
   // Interactive Graph Controls
   const [activeMetric, setActiveMetric] = useState('mrr'); // 'mrr' | 'arr' | 'newSubscriptions'
   const [timeRange, setTimeRange] = useState('6M'); // '3M' | '6M'
+
+  // Dendrogram Active Hover/Selection State
+  const [selectedCluster, setSelectedCluster] = useState('all'); // 'all' | 'core' | 'addons' | 'infra'
 
   // Comprehensive 6-month historical & forecast dataset for dynamic switching
   const chartDatasets = {
@@ -74,6 +78,70 @@ export function DashboardPage({
   const currentMrr = 28450;
   const targetMrr = 35000;
   const progressPercent = Math.min(100, Math.round((currentMrr / targetMrr) * 100));
+
+  // Product Hierarchical Dendrogram Clusters & Sales Performance
+  const dendrogramClusters = [
+    {
+      id: 'core',
+      category: 'Core SaaS Platforms',
+      share: '65%',
+      salesAmount: 18492,
+      growth: '+14.2%',
+      color: '#3b82f6', // blue
+      products: [
+        {
+          name: 'Brightloop Core Suite',
+          code: 'BL-CORE',
+          tier: 'Enterprise Flagship',
+          sales: '$18,492',
+          units: '780 active',
+          badge: 'Top Seller #1',
+          status: 'excellent',
+          sparkColor: 'bg-emerald-500',
+        },
+      ],
+    },
+    {
+      id: 'addons',
+      category: 'Intelligence & Add-ons',
+      share: '20%',
+      salesAmount: 5690,
+      growth: '+24.8%',
+      color: '#8b5cf6', // purple
+      products: [
+        {
+          name: 'Advanced Analytics Addon',
+          code: 'BL-ANLY',
+          tier: 'Growth Accelerator',
+          sales: '$5,690',
+          units: '420 active',
+          badge: 'Fastest Growth',
+          status: 'high-velocity',
+          sparkColor: 'bg-purple-500',
+        },
+      ],
+    },
+    {
+      id: 'infra',
+      category: 'Dedicated Infrastructure',
+      share: '15%',
+      salesAmount: 4268,
+      growth: '+18.5%',
+      color: '#06b6d4', // cyan
+      products: [
+        {
+          name: 'Dedicated API Gateway',
+          code: 'BL-GATE',
+          tier: 'DevOps & Webhooks',
+          sales: '$4,268',
+          units: '33 scale',
+          badge: 'Top Retention',
+          status: 'stable',
+          sparkColor: 'bg-cyan-500',
+        },
+      ],
+    },
+  ];
 
   // Custom Glassmorphic Tooltip
   const CustomTooltip = ({ active, payload, label }) => {
@@ -122,14 +190,14 @@ export function DashboardPage({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Executive Revenue Control</h1>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Executive Dashboard</h1>
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
               <Zap className="w-3 h-3 text-blue-600 fill-current" />
               SaaS Engine
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Real-time monthly revenue velocity, subscription contracts, and cashflow health.
+            Dendrogram product sales clustering alongside real-time monthly revenue trajectory.
           </p>
         </div>
 
@@ -155,7 +223,7 @@ export function DashboardPage({
         </div>
       </div>
 
-      {/* Overdue Invoices Alert Banner (if any) */}
+      {/* Overdue Invoices Alert Banner */}
       {overdueInvoices.length > 0 && (
         <div className="flex items-center justify-between p-3.5 rounded-xl border border-amber-200 bg-amber-50/70 text-xs shadow-xs">
           <div className="flex items-center gap-2.5">
@@ -178,7 +246,7 @@ export function DashboardPage({
         </div>
       )}
 
-      {/* 4 Core KPIs with Micro-Indicators */}
+      {/* 4 Core KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Monthly Recurring (MRR)"
@@ -214,192 +282,331 @@ export function DashboardPage({
         />
       </div>
 
-      {/* UNIQUE INTERACTIVE REVENUE COMMAND GRAPH */}
-      <Card className="border-slate-200 shadow-sm overflow-hidden">
-        {/* Graph Header: Title, Metric Switchers, and Period Selectors */}
-        <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-linear-to-b from-slate-50/50 to-white">
-          <div>
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-blue-600" />
-                Revenue Trajectory & Billing Velocity
+      {/* SPLIT SECTION: LEFT = PRODUCT DENDROGRAM | RIGHT = REVENUE TRAJECTORY GRAPH */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+        
+        {/* LEFT COLUMN (5 of 12): PRODUCT SALES DENDROGRAM HIERARCHY */}
+        <Card className="xl:col-span-5 border-slate-200 shadow-sm overflow-hidden flex flex-col h-full">
+          <CardHeader className="p-4 pb-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div>
+              <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <GitBranch className="w-4 h-4 text-indigo-600" />
+                Product Sales Dendrogram
               </CardTitle>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                +14.2% YoY Run Rate
+              <CardDescription className="text-[11px] text-slate-500">
+                Hierarchical clustering showing top sales generators & revenue share
+              </CardDescription>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+              Sales Tree
+            </span>
+          </CardHeader>
+
+          <CardContent className="p-4 flex-1 space-y-4">
+            {/* DENDROGRAM VISUAL TREE CANVAS */}
+            <div className="relative pt-2">
+              {/* ROOT NODE: Total Catalog Sales */}
+              <div 
+                onClick={() => setSelectedCluster('all')}
+                className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                  selectedCluster === 'all'
+                    ? 'bg-linear-to-r from-blue-900 to-indigo-950 text-white border-blue-500 shadow-md ring-2 ring-blue-400/20'
+                    : 'bg-slate-900 text-white border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-blue-600/40 text-blue-300 flex items-center justify-center font-bold text-xs border border-blue-400/30">
+                    <Network className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-blue-300 block">
+                      Root: Total Catalog Sales
+                    </span>
+                    <span className="font-extrabold text-sm">{formatCurrency(currentMrr)} MRR</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                    100% Volume
+                  </span>
+                </div>
+              </div>
+
+              {/* BRANCH CONNECTOR TREE (Visual Dendrogram Connectors) */}
+              <div className="pl-6 pt-3 relative space-y-4 before:absolute before:left-3.5 before:top-0 before:bottom-6 before:w-0.5 before:bg-linear-to-b before:from-blue-600 before:via-indigo-400 before:to-cyan-400">
+                {dendrogramClusters.map((cluster) => {
+                  const isSelected = selectedCluster === 'all' || selectedCluster === cluster.id;
+
+                  return (
+                    <div 
+                      key={cluster.id} 
+                      className={`relative pl-4 transition-all duration-200 ${
+                        !isSelected ? 'opacity-40 grayscale-50' : 'opacity-100'
+                      }`}
+                      onClick={() => setSelectedCluster(cluster.id)}
+                    >
+                      {/* Horizontal Connector Branch Bar */}
+                      <div className="absolute -left-2.5 top-4 w-4 h-0.5 bg-slate-300 rounded" />
+
+                      {/* Cluster Category Node */}
+                      <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-xs hover:border-blue-400 transition-all cursor-pointer">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span 
+                              className="w-2.5 h-2.5 rounded-full shadow-xs" 
+                              style={{ backgroundColor: cluster.color }} 
+                            />
+                            <span className="font-bold text-xs text-slate-800">{cluster.category}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+                              {cluster.share} of Sales
+                            </span>
+                            <span className="text-[10px] font-bold text-emerald-600">
+                              {cluster.growth}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Progress Share Bar */}
+                        <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden mb-2.5">
+                          <div 
+                            className="h-1.5 rounded-full transition-all duration-500"
+                            style={{ 
+                              width: cluster.share, 
+                              backgroundColor: cluster.color 
+                            }}
+                          />
+                        </div>
+
+                        {/* LEAF NODES (Product Details in this cluster) */}
+                        <div className="space-y-1.5 pt-1 border-t border-slate-100">
+                          {cluster.products.map((p, idx) => (
+                            <div 
+                              key={idx}
+                              className="flex items-center justify-between text-[11px] p-1.5 rounded-lg bg-slate-50/80 hover:bg-blue-50/50 transition-colors"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Award className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                <div>
+                                  <span className="font-semibold text-slate-900 block leading-tight">{p.name}</span>
+                                  <span className="text-[10px] text-slate-400 font-mono">{p.units}</span>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <span className="font-extrabold text-slate-900 block">{p.sales}</span>
+                                <span className="text-[9px] font-bold text-blue-600 uppercase tracking-tight">
+                                  {p.badge}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Dendrogram Insights Footnote */}
+            <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-[11px] text-blue-900 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Flame className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>
+                  <strong>Core Suite</strong> generates 65% of monthly revenue with 99.2% retention.
+                </span>
+              </div>
+              <button
+                onClick={() => setSelectedCluster('all')}
+                className="text-[10px] font-bold text-blue-700 hover:underline shrink-0"
+              >
+                Reset View
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* RIGHT COLUMN (7 of 12): REVENUE TRAJECTORY GRAPH (SHIFTED RIGHT) */}
+        <Card className="xl:col-span-7 border-slate-200 shadow-sm overflow-hidden flex flex-col h-full">
+          {/* Graph Header: Title, Metric Switchers, and Period Selectors */}
+          <div className="p-4 pb-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-linear-to-b from-slate-50/50 to-white">
+            <div>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                  <TrendingUp className="w-4 h-4 text-blue-600" />
+                  Recurring Revenue Velocity
+                </CardTitle>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  +14.2% YoY
+                </span>
+              </div>
+              <CardDescription className="text-[11px] text-slate-500 mt-0.5">
+                Monthly revenue trajectory & subscriber velocity
+              </CardDescription>
+            </div>
+
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              {/* Metric Switcher: MRR / ARR / Net Subscribers */}
+              <div className="bg-slate-100 p-0.5 rounded-lg flex items-center border border-slate-200">
+                <button
+                  onClick={() => setActiveMetric('mrr')}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${
+                    activeMetric === 'mrr'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  MRR
+                </button>
+                <button
+                  onClick={() => setActiveMetric('arr')}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${
+                    activeMetric === 'arr'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  ARR
+                </button>
+                <button
+                  onClick={() => setActiveMetric('newSubscriptions')}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${
+                    activeMetric === 'newSubscriptions'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Volume
+                </button>
+              </div>
+
+              {/* Time Range Selector */}
+              <div className="bg-slate-100 p-0.5 rounded-lg flex items-center border border-slate-200">
+                <button
+                  onClick={() => setTimeRange('3M')}
+                  className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all ${
+                    timeRange === '3M'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  3M
+                </button>
+                <button
+                  onClick={() => setTimeRange('6M')}
+                  className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all ${
+                    timeRange === '6M'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  6M
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 3 Telemetry Metrics */}
+          <div className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100 bg-slate-50/30 text-xs">
+            <div className="p-2.5 px-4">
+              <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider block">
+                ARPU (Avg / User)
+              </span>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="text-sm font-extrabold text-slate-900">$199.20</span>
+                <span className="text-[10px] text-emerald-600 font-bold">+4.2%</span>
+              </div>
+            </div>
+            <div className="p-2.5 px-4">
+              <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider block">
+                Net Retention (NRR)
+              </span>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="text-sm font-extrabold text-slate-900">108.5%</span>
+                <span className="text-[10px] text-emerald-600 font-bold">Tier 1</span>
+              </div>
+            </div>
+            <div className="p-2.5 px-4">
+              <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider block">
+                Collection Rate
+              </span>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="text-sm font-extrabold text-slate-900">97.8%</span>
+                <span className="text-[10px] text-blue-600 font-bold">Healthy</span>
+              </div>
+            </div>
+          </div>
+
+          {/* The Visual Chart Canvas */}
+          <CardContent className="pt-4 pb-2 flex-1 min-h-[260px]">
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={currentChartData} margin={{ top: 10, right: 10, left: -5, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="auroraRevenueGradient2" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.35} />
+                      <stop offset="60%" stopColor="#6366f1" stopOpacity={0.12} />
+                      <stop offset="100%" stopColor="#06b6d4" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis 
+                    dataKey="month" 
+                    stroke="#94a3b8" 
+                    fontSize={11} 
+                    fontWeight={500}
+                    tickLine={false} 
+                    axisLine={{ stroke: '#e2e8f0' }} 
+                  />
+                  <YAxis
+                    stroke="#94a3b8"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(val) => 
+                      activeMetric === 'newSubscriptions' ? `${val}` : `$${val >= 1000 ? `${val / 1000}k` : val}`
+                    }
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area
+                    type="monotone"
+                    dataKey={activeMetric}
+                    stroke="#2563eb"
+                    strokeWidth={2.5}
+                    dot={{ r: 3.5, fill: '#2563eb', strokeWidth: 2, stroke: '#ffffff' }}
+                    activeDot={{ r: 5, fill: '#1d4ed8', stroke: '#ffffff', strokeWidth: 2 }}
+                    fillOpacity={1}
+                    fill="url(#auroraRevenueGradient2)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+
+          {/* Milestone Goal Progress Bar */}
+          <div className="p-3 px-5 border-t border-slate-100 bg-slate-50/40 flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                <Target className="w-3.5 h-3.5" />
+              </div>
+              <span className="font-bold text-slate-800 text-[11px]">
+                Q4 Target: $35,000 MRR ({progressPercent}% achieved)
               </span>
             </div>
-            <CardDescription className="text-xs text-slate-500 mt-0.5">
-              Interactive revenue telemetry comparing recurring collections, annualized projections, and subscriber velocity.
-            </CardDescription>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Metric Switcher: MRR / ARR / Net Subscribers */}
-            <div className="bg-slate-100 p-0.5 rounded-lg flex items-center border border-slate-200">
-              <button
-                onClick={() => setActiveMetric('mrr')}
-                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                  activeMetric === 'mrr'
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                MRR ($)
-              </button>
-              <button
-                onClick={() => setActiveMetric('arr')}
-                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                  activeMetric === 'arr'
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                ARR ($)
-              </button>
-              <button
-                onClick={() => setActiveMetric('newSubscriptions')}
-                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                  activeMetric === 'newSubscriptions'
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                New Subscribers
-              </button>
-            </div>
-
-            {/* Time Range Selector */}
-            <div className="bg-slate-100 p-0.5 rounded-lg flex items-center border border-slate-200">
-              <button
-                onClick={() => setTimeRange('3M')}
-                className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                  timeRange === '3M'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                3M
-              </button>
-              <button
-                onClick={() => setTimeRange('6M')}
-                className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                  timeRange === '6M'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                6M
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* 3 Executive Health Telemetry Badges */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 border-b border-slate-100 bg-slate-50/30 text-xs">
-          <div className="p-3.5 px-6">
-            <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider block">
-              Average Revenue / Customer (ARPU)
-            </span>
-            <div className="flex items-baseline gap-2 mt-0.5">
-              <span className="text-lg font-bold text-slate-900">$199.20</span>
-              <span className="text-[11px] text-emerald-600 font-semibold">+4.2%</span>
-            </div>
-          </div>
-          <div className="p-3.5 px-6">
-            <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider block">
-              Net Revenue Retention (NRR)
-            </span>
-            <div className="flex items-baseline gap-2 mt-0.5">
-              <span className="text-lg font-bold text-slate-900">108.5%</span>
-              <span className="text-[11px] text-emerald-600 font-semibold">Tier 1 SaaS</span>
-            </div>
-          </div>
-          <div className="p-3.5 px-6">
-            <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider block">
-              Cash Collection Efficiency
-            </span>
-            <div className="flex items-baseline gap-2 mt-0.5">
-              <span className="text-lg font-bold text-slate-900">97.8%</span>
-              <span className="text-[11px] text-blue-600 font-semibold">Healthy</span>
-            </div>
-          </div>
-        </div>
-
-        {/* The Visual Chart Canvas with Aurora Gradient */}
-        <CardContent className="pt-6 pb-2">
-          <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={currentChartData} margin={{ top: 15, right: 15, left: 10, bottom: 5 }}>
-                <defs>
-                  {/* Glowing Aurora Multi-Stop Gradient */}
-                  <linearGradient id="auroraRevenueGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.35} />
-                    <stop offset="60%" stopColor="#6366f1" stopOpacity={0.12} />
-                    <stop offset="100%" stopColor="#06b6d4" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="month" 
-                  stroke="#94a3b8" 
-                  fontSize={12} 
-                  fontWeight={500}
-                  tickLine={false} 
-                  axisLine={{ stroke: '#e2e8f0' }} 
-                />
-                <YAxis
-                  stroke="#94a3b8"
-                  fontSize={11}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(val) => 
-                    activeMetric === 'newSubscriptions' ? `${val}` : `$${val >= 1000 ? `${val / 1000}k` : val}`
-                  }
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Area
-                  type="monotone"
-                  dataKey={activeMetric}
-                  stroke="#2563eb"
-                  strokeWidth={3}
-                  dot={{ r: 4, fill: '#2563eb', strokeWidth: 2, stroke: '#ffffff' }}
-                  activeDot={{ r: 6, fill: '#1d4ed8', stroke: '#ffffff', strokeWidth: 3 }}
-                  fillOpacity={1}
-                  fill="url(#auroraRevenueGradient)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-
-        {/* Milestone Goal Progress Bar */}
-        <div className="p-4 px-6 border-t border-slate-100 bg-slate-50/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
-              <Target className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="font-bold text-slate-800">Q4 Target Milestone: $35,000 MRR</span>
-              <p className="text-[11px] text-slate-500">
-                Currently at <strong className="text-slate-800 font-semibold">{formatCurrency(currentMrr)}</strong> ({progressPercent}% achieved). Need $6,550 to reach target.
-              </p>
-            </div>
-          </div>
-          <div className="w-full sm:w-48">
-            <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+            <div className="w-32 bg-slate-200 rounded-full h-1.5 overflow-hidden">
               <div 
-                className="bg-linear-to-r from-blue-600 to-indigo-500 h-2 rounded-full transition-all duration-500" 
+                className="bg-linear-to-r from-blue-600 to-indigo-500 h-1.5 rounded-full transition-all duration-500" 
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
-            <span className="text-[10px] text-right block text-slate-500 mt-1 font-semibold">{progressPercent}% of Goal</span>
           </div>
-        </div>
-      </Card>
+        </Card>
+      </div>
 
-      {/* LIVE SUBSCRIPTION REGISTRY (Streamlined & Visually Polished) */}
+      {/* LIVE SUBSCRIPTION REGISTRY */}
       <Card>
-        <CardHeader className="flex items-center justify-between">
+        <CardHeader className="flex items-center justify-between p-4 pb-3">
           <div>
             <div className="flex items-center gap-2">
               <CardTitle className="text-sm font-bold text-slate-900">Active Subscription Contracts</CardTitle>
