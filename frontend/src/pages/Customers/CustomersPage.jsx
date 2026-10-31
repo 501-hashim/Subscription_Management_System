@@ -199,7 +199,7 @@ export function CustomersPage({ customers, onAddCustomer }) {
             <label className="block font-medium text-slate-700 mb-1">Customer Full Name *</label>
             <input
               type="text"
-              placeholder="e.g. Alex Morgan"
+              placeholder="Enter customer name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
@@ -214,7 +214,7 @@ export function CustomersPage({ customers, onAddCustomer }) {
               <label className="block font-medium text-slate-700 mb-1">Email Address *</label>
               <input
                 type="email"
-                placeholder="alex@company.com"
+                placeholder="customer@example.com"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
