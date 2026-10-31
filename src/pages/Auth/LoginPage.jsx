@@ -16,7 +16,6 @@ import {
   X,
   AlertCircle,
   HelpCircle,
-  ExternalLink,
   Users,
 } from 'lucide-react';
 
@@ -26,31 +25,29 @@ export function LoginPage({
   availableCustomers = [],
 }) {
   const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
-  const [accountType, setAccountType] = useState('staff'); // 'staff' | 'customer'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [role, setRole] = useState('Sales Representative');
-  const [department, setDepartment] = useState('Sales');
+  const [role, setRole] = useState('Billing Manager');
+  const [department, setDepartment] = useState('Finance');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Forgot password modal state
+  // Forgot password modal
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [resetSentInfo, setResetSentInfo] = useState(null);
 
-  // Real-time password rules validation (> 8 characters, uppercase, lowercase, special char)
+  // Real-time password criteria checklist
   const hasMinLength = password.length > 8;
   const hasUpperCase = /[A-Z]/.test(password);
   const hasLowerCase = /[a-z]/.test(password);
   const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password);
   const isPasswordStrong = hasMinLength && hasUpperCase && hasLowerCase && hasSpecialChar;
 
-  // Preset demo personas covering the three roles defined for access control
+  // Preset demo personas for quick testing
   const demoPersonas = [
     {
       id: 'USR-01',
@@ -58,10 +55,8 @@ export function LoginPage({
       email: 'hashim@brightloop.io',
       role: 'Super Admin',
       department: 'Engineering',
-      personaType: 'admin',
       badge: 'Admin',
-      badgeColor: 'bg-purple-100 text-purple-700 border-purple-200',
-      description: 'Controls the whole system & adds internal staff',
+      badgeColor: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
     },
     {
       id: 'USR-02',
@@ -69,27 +64,20 @@ export function LoginPage({
       email: 'sarah.c@brightloop.io',
       role: 'Billing Manager',
       department: 'Finance',
-      personaType: 'staff',
-      badge: 'Internal Staff',
-      badgeColor: 'bg-blue-100 text-blue-700 border-blue-200',
-      description: 'Handles day-to-day quotes, subscriptions & invoices',
+      badge: 'Billing Lead',
+      badgeColor: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
     },
     {
-      id: 'CUST-001',
-      name: 'Sarah Jenkins',
-      email: 'sarah.jenkins@acmecorp.com',
-      company: 'Acme Corporation',
-      role: 'Customer',
-      customerId: 'CUST-001',
-      department: 'Client',
-      personaType: 'customer',
-      badge: 'Customer Portal',
-      badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-      description: 'Self-service portal to view own subscriptions & invoices',
+      id: 'USR-03',
+      name: 'Liam Vance',
+      email: 'liam.v@brightloop.io',
+      role: 'Sales Representative',
+      department: 'Sales',
+      badge: 'Sales Rep',
+      badgeColor: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
     },
   ];
 
-  // Quick 1-click persona login
   const handleSelectPersona = (persona) => {
     setEmail(persona.email);
     setPassword('SecurePass2025!');
@@ -99,14 +87,13 @@ export function LoginPage({
     setTimeout(() => {
       setIsLoading(false);
       onLogin(persona);
-    }, 450);
+    }, 400);
   };
 
   const handleForgotSubmit = (e) => {
     e.preventDefault();
     if (!forgotEmail.trim()) return;
 
-    // Simulate sending reset link
     const mockToken = Math.random().toString(36).substring(2, 12);
     setResetSentInfo({
       email: forgotEmail.trim(),
@@ -120,33 +107,22 @@ export function LoginPage({
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // 1. Email validation
     if (!cleanEmail) {
       setErrorMessage('Please enter your business email.');
       return;
     }
 
-    // 2. Password validation based on security policy
     if (mode === 'signup') {
       if (!isPasswordStrong) {
         setErrorMessage(
-          'Password must be more than 8 characters and contain at least one uppercase letter, one lowercase letter, and one special character.'
+          'Password must be more than 8 characters and include at least one uppercase letter, one lowercase letter, and one special character.'
         );
         return;
       }
 
-      // 3. Email Uniqueness check: "Each email can belong to only one account"
-      const userExists = availableUsers.some(
-        (u) => u.email?.toLowerCase() === cleanEmail
-      );
-      const customerExists = availableCustomers.some(
-        (c) => c.email?.toLowerCase() === cleanEmail
-      );
-
-      if (userExists || customerExists) {
-        setErrorMessage(
-          'An account with this email address already exists. Each email can belong to only one account.'
-        );
+      const userExists = availableUsers.some((u) => u.email?.toLowerCase() === cleanEmail);
+      if (userExists) {
+        setErrorMessage('An account with this email address already exists.');
         return;
       }
 
@@ -155,7 +131,6 @@ export function LoginPage({
         return;
       }
     } else {
-      // In signin mode, minimum check
       if (!password.trim()) {
         setErrorMessage('Please enter your password.');
         return;
@@ -168,490 +143,336 @@ export function LoginPage({
       setIsLoading(false);
 
       if (mode === 'signin') {
-        // Search in users
-        const matchedUser = availableUsers.find(
-          (u) => u.email?.toLowerCase() === cleanEmail
-        );
-        if (matchedUser) {
-          onLogin(matchedUser);
-          return;
-        }
-
-        // Search in customers
-        const matchedCustomer = availableCustomers.find(
-          (c) => c.email?.toLowerCase() === cleanEmail
-        );
-        if (matchedCustomer) {
-          const customerAccount = {
-            id: matchedCustomer.id,
-            customerId: matchedCustomer.id,
-            name: matchedCustomer.name,
-            email: matchedCustomer.email,
-            company: matchedCustomer.company,
-            role: 'Customer',
-            department: 'Client',
-            status: 'Active',
-            personaType: 'customer',
-          };
-          onLogin(customerAccount);
-          return;
-        }
-
-        // Default fallback mock login
-        const defaultUser = {
-          id: `USR-${Date.now().toString().slice(-4)}`,
-          name: fullName || email.split('@')[0].replace(/[^a-zA-Z]/g, ' ') || 'Demo User',
-          email: cleanEmail,
-          role: 'Internal Staff',
-          department: 'Operations',
-          status: 'Active',
-          lastActive: 'Just now',
-          personaType: 'staff',
-        };
-        onLogin(defaultUser);
-      } else {
-        // Sign up
-        if (accountType === 'customer') {
-          const newCustomer = {
-            id: `CUST-${Date.now().toString().slice(-4)}`,
-            customerId: `CUST-${Date.now().toString().slice(-4)}`,
-            name: fullName.trim(),
-            company: companyName.trim() || `${fullName.trim()}'s Organization`,
-            email: cleanEmail,
-            role: 'Customer',
-            department: 'Client',
-            status: 'Active',
-            personaType: 'customer',
-          };
-          onLogin(newCustomer, true);
+        const matched = availableUsers.find((u) => u.email?.toLowerCase() === cleanEmail);
+        if (matched) {
+          onLogin(matched);
         } else {
-          const newStaff = {
+          const defaultUser = {
             id: `USR-${Date.now().toString().slice(-4)}`,
-            name: fullName.trim(),
+            name: fullName || email.split('@')[0].replace(/[^a-zA-Z]/g, ' ') || 'Demo User',
             email: cleanEmail,
-            role: role,
-            department: department,
+            role: 'Super Admin',
+            department: 'Operations',
             status: 'Active',
             lastActive: 'Just now',
-            personaType: role === 'Super Admin' ? 'admin' : 'staff',
           };
-          onLogin(newStaff, true);
+          onLogin(defaultUser);
         }
+      } else {
+        const newUser = {
+          id: `USR-${Date.now().toString().slice(-4)}`,
+          name: fullName.trim(),
+          email: cleanEmail,
+          role: role,
+          department: department,
+          status: 'Active',
+          lastActive: 'Just now',
+        };
+        onLogin(newUser, true);
       }
     }, 500);
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col justify-center relative overflow-hidden font-sans py-8">
-      {/* Background Ambience */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col justify-between relative overflow-hidden font-sans selection:bg-blue-500 selection:text-white">
+      {/* Background Mesh Glows */}
+      <div className="absolute top-[-10%] left-[-10%] w-[550px] h-[550px] bg-blue-600/15 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[550px] h-[550px] bg-indigo-600/15 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-sky-500/5 rounded-full blur-[160px] pointer-events-none" />
 
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 bg-white rounded-2xl shadow-2xl border border-slate-200/80 overflow-hidden">
-          
-          {/* Left Hero / Problem Statement Showcase */}
-          <div className="lg:col-span-5 bg-linear-to-br from-slate-900 via-indigo-950 to-blue-900 text-white p-8 lg:p-10 flex flex-col justify-between relative overflow-hidden">
-            <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-blue-500/10 rounded-full blur-2xl" />
-
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
-                  <Zap className="w-5 h-5 fill-current" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold tracking-tight text-white leading-none">Brightloop</h1>
-                  <span className="text-xs text-blue-300 font-medium">Subscription Platform</span>
-                </div>
-              </div>
-
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-400/20 text-blue-300 text-xs font-medium mb-4">
-                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                <span>Unified Recurring Billing & Invoicing</span>
-              </div>
-
-              <h2 className="text-2xl font-extrabold tracking-tight text-white leading-tight">
-                Digital backbone of recurring revenue.
-              </h2>
-              <p className="mt-2.5 text-xs text-slate-300 leading-relaxed">
-                Run the full lifecycle from products and quotations to automated recurring invoicing, payment reconciliation, and real-time MRR analytics.
-              </p>
-            </div>
-
-            {/* Role Segregation Preview */}
-            <div className="my-6 space-y-2.5 relative z-10">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-blue-300/80 mb-2">
-                Three Distinct Access Tiers (Problem Stmt §3):
-              </div>
-
-              <div className="flex items-center gap-3 bg-white/5 backdrop-blur-xs p-2.5 rounded-xl border border-white/10">
-                <ShieldCheck className="w-4 h-4 text-purple-400 shrink-0" />
-                <div>
-                  <h4 className="text-xs font-semibold text-white">System Admin</h4>
-                  <p className="text-[10px] text-slate-300">Controls products, plans, taxes, discounts & adds staff.</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 bg-white/5 backdrop-blur-xs p-2.5 rounded-xl border border-white/10">
-                <Users className="w-4 h-4 text-blue-400 shrink-0" />
-                <div>
-                  <h4 className="text-xs font-semibold text-white">Internal Staff</h4>
-                  <p className="text-[10px] text-slate-300">Day-to-day operations: quotes, subscriptions, billing.</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 bg-white/5 backdrop-blur-xs p-2.5 rounded-xl border border-white/10">
-                <Building2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <div>
-                  <h4 className="text-xs font-semibold text-white">Customer Portal</h4>
-                  <p className="text-[10px] text-slate-300">Customers see and manage only their own subscriptions & invoices.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Hackathon Badge Footer */}
-            <div className="pt-4 border-t border-white/10 text-[11px] text-slate-400 flex items-center justify-between relative z-10">
-              <span>Enterprise Cloud Edition</span>
-              <span className="text-slate-300 font-mono text-[10px]">Strict RBAC</span>
-            </div>
+      {/* Top Brand Bar */}
+      <header className="relative z-10 w-full max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-linear-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/25 ring-1 ring-white/20">
+            <Zap className="w-5 h-5 fill-current" />
           </div>
-
-          {/* Right Column: Authentication Form */}
-          <div className="lg:col-span-7 p-8 lg:p-10 flex flex-col justify-between bg-white">
-            <div>
-              {/* Header Tab Toggle */}
-              <div className="flex items-center justify-between pb-5 border-b border-slate-100">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900">
-                    {mode === 'signin' ? 'Sign in to Brightloop' : 'Create an Account'}
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {mode === 'signin'
-                      ? 'Access your dashboard or test one of the 3 persona roles below.'
-                      : 'Join Brightloop with unique email and verified credentials.'}
-                  </p>
-                </div>
-
-                <div className="flex bg-slate-100 p-1 rounded-lg text-xs font-medium shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode('signin');
-                      setErrorMessage('');
-                    }}
-                    className={`px-3 py-1.5 rounded-md transition-all ${
-                      mode === 'signin'
-                        ? 'bg-white text-blue-600 font-semibold shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode('signup');
-                      setErrorMessage('');
-                    }}
-                    className={`px-3 py-1.5 rounded-md transition-all ${
-                      mode === 'signup'
-                        ? 'bg-white text-blue-600 font-semibold shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Register
-                  </button>
-                </div>
-              </div>
-
-              {/* 1-Click Persona Quick Testing (Hackathon Evaluator Showcase) */}
-              {mode === 'signin' && (
-                <div className="mt-4 p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                      1-Click Hackathon Persona Login
-                    </span>
-                    <span className="text-[10px] text-slate-400">Select to test role</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    {demoPersonas.map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => handleSelectPersona(p)}
-                        className="text-left p-2 rounded-lg bg-white border border-slate-200 hover:border-blue-500 hover:shadow-xs transition-all group cursor-pointer"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-900 group-hover:text-blue-600 truncate">
-                            {p.name.split(' ')[0]}
-                          </span>
-                          <span className={`text-[9px] px-1.5 py-0.2 rounded font-semibold border ${p.badgeColor}`}>
-                            {p.badge}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-slate-500 truncate mt-0.5">{p.email}</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Feedback messages */}
-              {errorMessage && (
-                <div className="mt-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                  <span>{errorMessage}</span>
-                </div>
-              )}
-
-              {/* Main Form */}
-              <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-                {mode === 'signup' && (
-                  <div>
-                    {/* Account Type Selector for Registration */}
-                    <div className="mb-3">
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        I am registering as:
-                      </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setAccountType('customer')}
-                          className={`p-2 rounded-lg border text-left transition-all ${
-                            accountType === 'customer'
-                              ? 'border-blue-600 bg-blue-50/60 text-blue-900'
-                              : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className="text-xs font-bold">New Customer</div>
-                          <div className="text-[10px] text-slate-400">Access Customer Portal</div>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setAccountType('staff')}
-                          className={`p-2 rounded-lg border text-left transition-all ${
-                            accountType === 'staff'
-                              ? 'border-blue-600 bg-blue-50/60 text-blue-900'
-                              : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className="text-xs font-bold">Internal Staff / Admin</div>
-                          <div className="text-[10px] text-slate-400">Operations & Billing</div>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
-                          Full Name
-                        </label>
-                        <div className="relative">
-                          <UserCheck className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                          <input
-                            type="text"
-                            value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            placeholder="e.g. Alex Morgan"
-                            className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-slate-800 placeholder-slate-400"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      {accountType === 'customer' ? (
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1">
-                            Organization / Company Name
-                          </label>
-                          <div className="relative">
-                            <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                            <input
-                              type="text"
-                              value={companyName}
-                              onChange={(e) => setCompanyName(e.target.value)}
-                              placeholder="e.g. Acme Labs Ltd"
-                              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-slate-800 placeholder-slate-400"
-                              required
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1">
-                            Designated Role
-                          </label>
-                          <select
-                            value={role}
-                            onChange={(e) => setRole(e.target.value)}
-                            className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-slate-800"
-                          >
-                            <option value="Super Admin">Super Admin</option>
-                            <option value="Billing Manager">Billing Manager</option>
-                            <option value="Sales Representative">Sales Representative</option>
-                            <option value="Support Specialist">Support Specialist</option>
-                          </select>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Email input */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-semibold text-slate-700">
-                      Email Address
-                    </label>
-                    {mode === 'signup' && (
-                      <span className="text-[10px] text-slate-400">Unique per account</span>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder={mode === 'signin' ? 'name@company.com' : 'you@example.com'}
-                      className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-slate-800 placeholder-slate-400 transition-all"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Password input */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-semibold text-slate-700">
-                      Password
-                    </label>
-                    {mode === 'signin' && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setForgotEmail(email);
-                          setResetSentInfo(null);
-                          setShowForgotModal(true);
-                        }}
-                        className="text-[11px] text-blue-600 hover:text-blue-800 font-medium hover:underline"
-                      >
-                        Forgot password?
-                      </button>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••••••"
-                      className="w-full pl-9 pr-10 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-slate-800 placeholder-slate-400 transition-all"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-
-                  {/* Real-Time Password Rule Checklist (Specific Problem Statement Criterion) */}
-                  {mode === 'signup' && (
-                    <div className="mt-2.5 p-2.5 bg-slate-50 border border-slate-200 rounded-lg space-y-1.5">
-                      <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-                        Password Requirements:
-                      </div>
-                      <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-                        <div className={`flex items-center gap-1.5 ${hasMinLength ? 'text-emerald-700 font-semibold' : 'text-slate-500'}`}>
-                          <CheckCircle2 className={`w-3.5 h-3.5 ${hasMinLength ? 'text-emerald-600' : 'text-slate-300'}`} />
-                          <span>&gt; 8 characters</span>
-                        </div>
-                        <div className={`flex items-center gap-1.5 ${hasUpperCase ? 'text-emerald-700 font-semibold' : 'text-slate-500'}`}>
-                          <CheckCircle2 className={`w-3.5 h-3.5 ${hasUpperCase ? 'text-emerald-600' : 'text-slate-300'}`} />
-                          <span>1 Uppercase (A-Z)</span>
-                        </div>
-                        <div className={`flex items-center gap-1.5 ${hasLowerCase ? 'text-emerald-700 font-semibold' : 'text-slate-500'}`}>
-                          <CheckCircle2 className={`w-3.5 h-3.5 ${hasLowerCase ? 'text-emerald-600' : 'text-slate-300'}`} />
-                          <span>1 Lowercase (a-z)</span>
-                        </div>
-                        <div className={`flex items-center gap-1.5 ${hasSpecialChar ? 'text-emerald-700 font-semibold' : 'text-slate-500'}`}>
-                          <CheckCircle2 className={`w-3.5 h-3.5 ${hasSpecialChar ? 'text-emerald-600' : 'text-slate-300'}`} />
-                          <span>1 Special symbol</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between pt-1">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-3.5 w-3.5"
-                    />
-                    <span className="text-xs text-slate-600">Keep me signed in</span>
-                  </label>
-                  <span className="text-[11px] text-slate-400">TLS 1.3 Encrypted</span>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full mt-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs rounded-lg shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {isLoading ? (
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <span>{mode === 'signin' ? 'Sign In' : 'Complete Registration'}</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              </form>
-            </div>
-
-            {/* Quick Helper for Judges */}
-            <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
-              <span className="text-[11px] text-slate-400">
-                Want to test Customer Portal directly?
-              </span>
-              <button
-                type="button"
-                onClick={() => handleSelectPersona(demoPersonas[2])}
-                className="text-emerald-700 hover:text-emerald-900 font-semibold hover:underline inline-flex items-center gap-1 text-[11px]"
-              >
-                <span>Jump into Acme Corp Portal</span>
-                <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
-
+          <div>
+            <span className="text-base font-bold tracking-tight text-white block leading-none">Brightloop</span>
+            <span className="text-[11px] text-blue-400 font-medium">Subscription Platform</span>
           </div>
         </div>
-      </div>
 
-      {/* Forgot Password Modal (Problem Statement: "If they forget it later, a reset link should arrive at their registered email") */}
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span>Platform Status: Operational</span>
+        </div>
+      </header>
+
+      {/* Main Centered Floating Card */}
+      <main className="relative z-10 w-full max-w-md mx-auto px-4 py-4 sm:py-6">
+        <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-3xl p-7 sm:p-8 shadow-2xl shadow-black/60 relative">
+          
+          {/* Card Header */}
+          <div className="text-center space-y-1.5 mb-6">
+            <h1 className="text-2xl font-extrabold tracking-tight text-white">
+              {mode === 'signin' ? 'Welcome Back' : 'Create an Account'}
+            </h1>
+            <p className="text-xs text-slate-400">
+              {mode === 'signin'
+                ? 'Sign in to access your recurring subscription workspace'
+                : 'Enter your credentials to register a workspace account'}
+            </p>
+          </div>
+
+          {/* Mode Tabs */}
+          <div className="flex p-1 rounded-xl bg-slate-950/60 border border-white/5 mb-6 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => {
+                setMode('signin');
+                setErrorMessage('');
+              }}
+              className={`flex-1 py-2 rounded-lg transition-all ${
+                mode === 'signin'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode('signup');
+                setErrorMessage('');
+              }}
+              className={`flex-1 py-2 rounded-lg transition-all ${
+                mode === 'signup'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Register
+            </button>
+          </div>
+
+          {/* 1-Click Persona Quick Testing Pill Tray */}
+          {mode === 'signin' && (
+            <div className="mb-6 p-3 rounded-2xl bg-white/[0.03] border border-white/5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                  1-Click Demo Login
+                </span>
+                <span className="text-[10px] text-blue-400 font-medium">Quick switch</span>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {demoPersonas.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => handleSelectPersona(p)}
+                    className="p-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-white/5 hover:border-blue-500/50 text-left transition-all group"
+                  >
+                    <span className="text-[11px] font-semibold text-slate-200 block truncate group-hover:text-blue-400">
+                      {p.name.split(' ')[0]}
+                    </span>
+                    <span className={`inline-block text-[9px] px-1.5 py-0.5 rounded font-mono font-medium border mt-1 ${p.badgeColor}`}>
+                      {p.badge}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Inline Error */}
+          {errorMessage && (
+            <div className="mb-5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-start gap-2 animate-in fade-in">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {/* Auth Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {mode === 'signup' && (
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <UserCheck className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Alex Morgan"
+                    className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-950/70 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-slate-500 transition-all"
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                Business Email
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="hashim@brightloop.io"
+                  className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-950/70 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-slate-500 transition-all"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-medium text-slate-300">
+                  Password
+                </label>
+                {mode === 'signin' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotEmail(email);
+                      setResetSentInfo(null);
+                      setShowForgotModal(true);
+                    }}
+                    className="text-[11px] text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="w-full pl-10 pr-10 py-2.5 text-xs bg-slate-950/70 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-slate-500 transition-all"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+
+              {/* Real-time Checklist for Signup */}
+              {mode === 'signup' && (
+                <div className="mt-3 p-3 bg-slate-950/60 border border-white/5 rounded-xl space-y-1.5">
+                  <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                    Password Requirements:
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                    <div className={`flex items-center gap-1.5 ${hasMinLength ? 'text-emerald-400 font-medium' : 'text-slate-500'}`}>
+                      <CheckCircle2 className={`w-3.5 h-3.5 ${hasMinLength ? 'text-emerald-400' : 'text-slate-600'}`} />
+                      <span>&gt; 8 characters</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 ${hasUpperCase ? 'text-emerald-400 font-medium' : 'text-slate-500'}`}>
+                      <CheckCircle2 className={`w-3.5 h-3.5 ${hasUpperCase ? 'text-emerald-400' : 'text-slate-600'}`} />
+                      <span>1 Uppercase (A-Z)</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 ${hasLowerCase ? 'text-emerald-400 font-medium' : 'text-slate-500'}`}>
+                      <CheckCircle2 className={`w-3.5 h-3.5 ${hasLowerCase ? 'text-emerald-400' : 'text-slate-600'}`} />
+                      <span>1 Lowercase (a-z)</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 ${hasSpecialChar ? 'text-emerald-400 font-medium' : 'text-slate-500'}`}>
+                      <CheckCircle2 className={`w-3.5 h-3.5 ${hasSpecialChar ? 'text-emerald-400' : 'text-slate-600'}`} />
+                      <span>1 Special symbol</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {mode === 'signup' && (
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Role
+                  </label>
+                  <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-slate-950/70 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+                  >
+                    <option value="Super Admin">Super Admin</option>
+                    <option value="Billing Manager">Billing Manager</option>
+                    <option value="Sales Representative">Sales Representative</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Department
+                  </label>
+                  <select
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-slate-950/70 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+                  >
+                    <option value="Engineering">Engineering</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Sales">Sales</option>
+                    <option value="Operations">Operations</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-400 hover:text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="rounded border-slate-700 bg-slate-950 text-blue-600 focus:ring-blue-500 h-3.5 w-3.5"
+                />
+                <span>Keep me signed in</span>
+              </label>
+              <span className="text-[11px] text-slate-500">256-bit SSL</span>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-3 px-4 bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.99] text-white font-semibold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer mt-2"
+            >
+              {isLoading ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <span>{mode === 'signin' ? 'Sign In to Dashboard' : 'Complete Registration'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="relative z-10 w-full max-w-6xl mx-auto px-6 py-4 text-center text-xs text-slate-500">
+        <p>Brightloop Subscription Management Platform • Secure Operations Portal</p>
+      </footer>
+
+      {/* Forgot Password Modal */}
       {showForgotModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl max-w-md w-full p-6 shadow-2xl text-slate-100 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-4 border-b border-white/10">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
                   <Mail className="w-4 h-4" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-900">Reset Your Password</h3>
+                <h3 className="text-sm font-bold text-white">Reset Password</h3>
               </div>
               <button
                 onClick={() => setShowForgotModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -659,22 +480,22 @@ export function LoginPage({
 
             {resetSentInfo ? (
               <div className="mt-4 space-y-4">
-                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs">
-                  <div className="flex items-center gap-2 font-bold mb-1 text-emerald-800">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-300 text-xs">
+                  <div className="flex items-center gap-2 font-bold mb-1 text-emerald-200">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     Reset Link Dispatched
                   </div>
-                  <p className="text-[11px] text-emerald-700 leading-relaxed">
+                  <p className="text-[11px] text-emerald-300/80 leading-relaxed">
                     A password reset link has been simulated for{' '}
-                    <strong className="font-semibold">{resetSentInfo.email}</strong>. The link expires in 15 minutes.
+                    <strong className="text-white font-semibold">{resetSentInfo.email}</strong>. The link expires in 15 minutes.
                   </p>
                 </div>
 
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1">
+                <div className="p-3 bg-slate-950 border border-white/5 rounded-xl text-xs space-y-1">
                   <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
                     Simulated Email Link:
                   </span>
-                  <div className="font-mono text-[11px] text-blue-600 break-all select-all">
+                  <div className="font-mono text-[11px] text-blue-400 break-all select-all">
                     {resetSentInfo.link}
                   </div>
                 </div>
@@ -682,28 +503,28 @@ export function LoginPage({
                 <button
                   type="button"
                   onClick={() => setShowForgotModal(false)}
-                  className="w-full py-2 bg-slate-900 text-white rounded-lg text-xs font-semibold hover:bg-slate-800 transition-colors"
+                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition-colors"
                 >
                   Return to Sign In
                 </button>
               </div>
             ) : (
               <form onSubmit={handleForgotSubmit} className="mt-4 space-y-4">
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Enter the email address registered with your Brightloop account and we'll dispatch a secure reset link.
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Enter your business email and we will generate a simulated secure link to reset your password.
                 </p>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Registered Email
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Registered Business Email
                   </label>
                   <input
                     type="email"
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
-                    placeholder="name@company.com"
+                    placeholder="hashim@brightloop.io"
                     required
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-slate-800"
+                    className="w-full px-3.5 py-2 text-xs bg-slate-950 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
                   />
                 </div>
 
@@ -711,13 +532,13 @@ export function LoginPage({
                   <button
                     type="button"
                     onClick={() => setShowForgotModal(false)}
-                    className="px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg"
+                    className="px-3 py-2 text-xs font-medium text-slate-400 hover:text-white"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm"
+                    className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-sm"
                   >
                     Send Reset Link
                   </button>
