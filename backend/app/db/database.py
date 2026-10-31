@@ -34,11 +34,14 @@ def init_db():
         org_id TEXT NOT NULL,
         name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        role TEXT NOT NULL,
-        role_title TEXT,
-        department TEXT,
+        password_hash TEXT DEFAULT 'OAuth-Google-Secured',
+        role TEXT NOT NULL DEFAULT 'user',
+        role_title TEXT DEFAULT 'Member',
+        department TEXT DEFAULT 'Operations',
         status TEXT DEFAULT 'Active',
+        auth_provider TEXT DEFAULT 'local',
+        google_id TEXT,
+        avatar_url TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_login TIMESTAMP,
         FOREIGN KEY (org_id) REFERENCES organizations(id)
@@ -53,9 +56,25 @@ def init_db():
         action TEXT NOT NULL,
         user_id TEXT,
         ip_address TEXT,
+        auth_provider TEXT DEFAULT 'local',
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """)
+
+    # Schema migration check for existing tables
+    cursor.execute("PRAGMA table_info(users);")
+    existing_cols = [row["name"] for row in cursor.fetchall()]
+    if "auth_provider" not in existing_cols:
+        cursor.execute("ALTER TABLE users ADD COLUMN auth_provider TEXT DEFAULT 'local';")
+    if "google_id" not in existing_cols:
+        cursor.execute("ALTER TABLE users ADD COLUMN google_id TEXT;")
+    if "avatar_url" not in existing_cols:
+        cursor.execute("ALTER TABLE users ADD COLUMN avatar_url TEXT;")
+
+    cursor.execute("PRAGMA table_info(login_audit_logs);")
+    existing_log_cols = [row["name"] for row in cursor.fetchall()]
+    if "auth_provider" not in existing_log_cols:
+        cursor.execute("ALTER TABLE login_audit_logs ADD COLUMN auth_provider TEXT DEFAULT 'local';")
 
     # Check if initial data already exists
     cursor.execute("SELECT COUNT(*) as count FROM organizations;")
@@ -72,17 +91,17 @@ def init_db():
 
         # Seed Users
         cursor.execute("""
-        INSERT INTO users (id, org_id, name, email, password_hash, role, role_title, department, status, last_login)
+        INSERT INTO users (id, org_id, name, email, password_hash, role, role_title, department, status, auth_provider, google_id, last_login)
         VALUES
-            ('USR-001', 'ORG-001', 'Hashim (Lead)', 'hashim@brightloop.io', 'SecurePass2025!', 'admin', 'Super Admin (Owner)', 'Engineering', 'Active', CURRENT_TIMESTAMP),
-            ('USR-002', 'ORG-001', 'Sarah Connor', 'sarah.c@brightloop.io', 'SecurePass2025!', 'user', 'Billing Manager', 'Finance', 'Active', CURRENT_TIMESTAMP),
-            ('USR-003', 'ORG-001', 'Liam Vance', 'liam.v@brightloop.io', 'SecurePass2025!', 'user', 'Sales Representative', 'Sales', 'Active', CURRENT_TIMESTAMP);
+            ('USR-001', 'ORG-001', 'Hashim (Lead)', 'hashim@brightloop.io', 'SecurePass2025!', 'admin', 'Super Admin (Owner)', 'Engineering', 'Active', 'local', 'goog-hashim-101', CURRENT_TIMESTAMP),
+            ('USR-002', 'ORG-001', 'Sarah Connor', 'sarah.c@brightloop.io', 'SecurePass2025!', 'user', 'Billing Manager', 'Finance', 'Active', 'local', 'goog-sarah-102', CURRENT_TIMESTAMP),
+            ('USR-003', 'ORG-001', 'Liam Vance', 'liam.v@brightloop.io', 'SecurePass2025!', 'user', 'Sales Representative', 'Sales', 'Active', 'local', 'goog-liam-103', CURRENT_TIMESTAMP);
         """)
 
         # Seed initial log
         cursor.execute("""
-        INSERT INTO login_audit_logs (email, action, user_id)
-        VALUES ('hashim@brightloop.io', 'SYSTEM_INITIALIZATION_SEED', 'USR-001');
+        INSERT INTO login_audit_logs (email, action, user_id, auth_provider)
+        VALUES ('hashim@brightloop.io', 'SYSTEM_INITIALIZATION_SEED', 'USR-001', 'system');
         """)
 
     conn.commit()

@@ -11,6 +11,13 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
+class GoogleLoginRequest(BaseModel):
+    email: str
+    name: Optional[str] = "Google User"
+    googleId: Optional[str] = None
+    avatarUrl: Optional[str] = None
+    token: Optional[str] = None
+
 class RegisterOrgRequest(BaseModel):
     orgName: str
     orgSize: Optional[str] = "11-50 employees"
@@ -37,6 +44,7 @@ def login(payload: LoginRequest):
     sql_query = """
     SELECT 
         u.id, u.org_id, u.name, u.email, u.password_hash, u.role, u.role_title, u.department, u.status,
+        u.auth_provider, u.avatar_url,
         o.name AS organization_name
     FROM users u
     LEFT JOIN organizations o ON u.org_id = o.id
@@ -46,7 +54,7 @@ def login(payload: LoginRequest):
     user = cursor.fetchone()
 
     if not user:
-        cursor.execute("INSERT INTO login_audit_logs (email, action) VALUES (?, ?);", (clean_email, "FAILED_USER_NOT_FOUND"))
+        cursor.execute("INSERT INTO login_audit_logs (email, action, auth_provider) VALUES (?, ?, ?);", (clean_email, "FAILED_USER_NOT_FOUND", "local"))
         conn.commit()
         conn.close()
         raise HTTPException(
@@ -55,7 +63,7 @@ def login(payload: LoginRequest):
         )
 
     if user["password_hash"] != payload.password and payload.password != "SecurePass2025!":
-        cursor.execute("INSERT INTO login_audit_logs (email, action, user_id) VALUES (?, ?, ?);", (clean_email, "FAILED_INVALID_PASSWORD", user["id"]))
+        cursor.execute("INSERT INTO login_audit_logs (email, action, user_id, auth_provider) VALUES (?, ?, ?, ?);", (clean_email, "FAILED_INVALID_PASSWORD", user["id"], "local"))
         conn.commit()
         conn.close()
         raise HTTPException(
@@ -65,7 +73,7 @@ def login(payload: LoginRequest):
 
     # Update last login timestamp
     cursor.execute("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?;", (user["id"],))
-    cursor.execute("INSERT INTO login_audit_logs (email, action, user_id) VALUES (?, ?, ?);", (clean_email, "LOGIN_SUCCESS", user["id"]))
+    cursor.execute("INSERT INTO login_audit_logs (email, action, user_id, auth_provider) VALUES (?, ?, ?, ?);", (clean_email, "LOGIN_SUCCESS", user["id"], "local"))
     conn.commit()
 
     response_data = {
@@ -81,11 +89,138 @@ def login(payload: LoginRequest):
             "role": "Super Admin" if user["role"] == "admin" else user["role_title"],
             "userType": user["role"],
             "department": user["department"],
-            "status": user["status"]
+            "status": user["status"],
+            "authProvider": user["auth_provider"] or "local",
+            "avatarUrl": user["avatar_url"]
         }
     }
     conn.close()
     return response_data
+
+@router.post("/google-login")
+def google_login(payload: GoogleLoginRequest):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    clean_email = payload.email.strip().lower()
+    google_id = payload.googleId or f"goog-{clean_email.split('@')[0]}"
+    avatar = payload.avatarUrl or f"https://api.dicebear.com/7.x/avataaars/svg?seed={clean_email}"
+    name = payload.name.strip() if payload.name else clean_email.split('@')[0].capitalize()
+
+    # Search for existing user
+    search_sql = """
+    SELECT 
+        u.id, u.org_id, u.name, u.email, u.role, u.role_title, u.department, u.status,
+        u.auth_provider, u.google_id, u.avatar_url,
+        o.name AS organization_name
+    FROM users u
+    LEFT JOIN organizations o ON u.org_id = o.id
+    WHERE LOWER(u.email) = ? OR (u.google_id IS NOT NULL AND u.google_id = ?);
+    """
+    cursor.execute(search_sql, (clean_email, google_id))
+    user = cursor.fetchone()
+
+    if user:
+        # Existing user - link Google and update last_login
+        update_sql = """
+        UPDATE users 
+        SET last_login = CURRENT_TIMESTAMP, 
+            auth_provider = 'google',
+            google_id = COALESCE(google_id, ?),
+            avatar_url = COALESCE(avatar_url, ?)
+        WHERE id = ?;
+        """
+        cursor.execute(update_sql, (google_id, avatar, user["id"]))
+        cursor.execute(
+            "INSERT INTO login_audit_logs (email, action, user_id, auth_provider) VALUES (?, ?, ?, ?);",
+            (clean_email, "GOOGLE_OAUTH_LOGIN_SUCCESS", user["id"], "google")
+        )
+        conn.commit()
+
+        executed_sql = f"""-- 1. Query User & Workspace by Google OAuth identity
+SELECT u.id, u.org_id, u.name, u.email, u.role, o.name AS organization
+FROM users u LEFT JOIN organizations o ON u.org_id = o.id
+WHERE LOWER(u.email) = '{clean_email}';
+
+-- 2. Update OAuth metadata & Last Login timestamp
+UPDATE users 
+SET last_login = CURRENT_TIMESTAMP, auth_provider = 'google', google_id = '{google_id}'
+WHERE id = '{user["id"]}';
+
+-- 3. Record Audit Trail
+INSERT INTO login_audit_logs (email, action, user_id, auth_provider)
+VALUES ('{clean_email}', 'GOOGLE_OAUTH_LOGIN_SUCCESS', '{user["id"]}', 'google');"""
+
+        response_data = {
+            "success": True,
+            "message": f"Successfully authenticated via Google OAuth as {user['name']}.",
+            "sql_query": executed_sql,
+            "authProvider": "google",
+            "user": {
+                "id": user["id"],
+                "orgId": user["org_id"],
+                "organization": user["organization_name"] or "Brightloop Technologies Inc.",
+                "name": user["name"],
+                "email": user["email"],
+                "role": "Super Admin" if user["role"] == "admin" else (user["role_title"] or "User"),
+                "userType": user["role"],
+                "department": user["department"] or "Operations",
+                "status": user["status"] or "Active",
+                "authProvider": "google",
+                "avatarUrl": user["avatar_url"] or avatar
+            }
+        }
+        conn.close()
+        return response_data
+    else:
+        # New Google User - provision user in SQL under default organization ORG-001
+        cursor.execute("SELECT COUNT(*) AS count FROM users;")
+        user_count = cursor.fetchone()["count"]
+        new_user_id = f"USR-{str(user_count + 1).zfill(3)}"
+
+        cursor.execute("SELECT name FROM organizations WHERE id = 'ORG-001';")
+        org_row = cursor.fetchone()
+        org_name = org_row["name"] if org_row else "Brightloop Technologies Inc."
+
+        insert_sql = """
+        INSERT INTO users (id, org_id, name, email, password_hash, role, role_title, department, status, auth_provider, google_id, avatar_url, last_login)
+        VALUES (?, 'ORG-001', ?, ?, 'OAuth-Google-Secured', 'user', 'Member', 'General', 'Active', 'google', ?, ?, CURRENT_TIMESTAMP);
+        """
+        cursor.execute(insert_sql, (new_user_id, name, clean_email, google_id, avatar))
+        cursor.execute(
+            "INSERT INTO login_audit_logs (email, action, user_id, auth_provider) VALUES (?, ?, ?, ?);",
+            (clean_email, "GOOGLE_OAUTH_REGISTER_SUCCESS", new_user_id, "google")
+        )
+        conn.commit()
+
+        executed_sql = f"""-- 1. Auto-provision Google OAuth User into Relational Schema
+INSERT INTO users (id, org_id, name, email, role, role_title, auth_provider, google_id, avatar_url)
+VALUES ('{new_user_id}', 'ORG-001', '{name}', '{clean_email}', 'user', 'Member', 'google', '{google_id}', '{avatar}');
+
+-- 2. Record Audit Trail
+INSERT INTO login_audit_logs (email, action, user_id, auth_provider)
+VALUES ('{clean_email}', 'GOOGLE_OAUTH_REGISTER_SUCCESS', '{new_user_id}', 'google');"""
+
+        response_data = {
+            "success": True,
+            "message": f"Successfully registered and authenticated via Google OAuth as {name}.",
+            "sql_query": executed_sql,
+            "authProvider": "google",
+            "user": {
+                "id": new_user_id,
+                "orgId": "ORG-001",
+                "organization": org_name,
+                "name": name,
+                "email": clean_email,
+                "role": "Member",
+                "userType": "user",
+                "department": "General",
+                "status": "Active",
+                "authProvider": "google",
+                "avatarUrl": avatar
+            }
+        }
+        conn.close()
+        return response_data
 
 @router.post("/register-organization")
 def register_organization(payload: RegisterOrgRequest):
@@ -129,8 +264,8 @@ def register_organization(payload: RegisterOrgRequest):
 
     # Insert Admin User using SQL
     insert_user_sql = """
-    INSERT INTO users (id, org_id, name, email, password_hash, role, role_title, department, status, last_login)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP);
+    INSERT INTO users (id, org_id, name, email, password_hash, role, role_title, department, status, auth_provider, last_login)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'local', CURRENT_TIMESTAMP);
     """
     cursor.execute(insert_user_sql, (
         new_user_id,
@@ -144,7 +279,7 @@ def register_organization(payload: RegisterOrgRequest):
         "Active"
     ))
 
-    cursor.execute("INSERT INTO login_audit_logs (email, action, user_id) VALUES (?, ?, ?);", (clean_email, "REGISTER_ORGANIZATION_SUCCESS", new_user_id))
+    cursor.execute("INSERT INTO login_audit_logs (email, action, user_id, auth_provider) VALUES (?, ?, ?, 'local');", (clean_email, "REGISTER_ORGANIZATION_SUCCESS", new_user_id))
     conn.commit()
     conn.close()
 
@@ -191,8 +326,8 @@ def register_user(payload: RegisterUserRequest):
 
     # Insert User using SQL
     insert_sql = """
-    INSERT INTO users (id, org_id, name, email, password_hash, role, role_title, department, status, last_login)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP);
+    INSERT INTO users (id, org_id, name, email, password_hash, role, role_title, department, status, auth_provider, last_login)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'local', CURRENT_TIMESTAMP);
     """
     cursor.execute(insert_sql, (
         new_user_id,
@@ -206,7 +341,7 @@ def register_user(payload: RegisterUserRequest):
         "Active"
     ))
 
-    cursor.execute("INSERT INTO login_audit_logs (email, action, user_id) VALUES (?, ?, ?);", (clean_email, "REGISTER_USER_SUCCESS", new_user_id))
+    cursor.execute("INSERT INTO login_audit_logs (email, action, user_id, auth_provider) VALUES (?, ?, ?, 'local');", (clean_email, "REGISTER_USER_SUCCESS", new_user_id))
     conn.commit()
     conn.close()
 
@@ -240,7 +375,11 @@ def sql_status():
     cursor.execute("SELECT COUNT(*) AS count FROM login_audit_logs;")
     log_count = cursor.fetchone()["count"]
 
-    cursor.execute("SELECT email, action, timestamp FROM login_audit_logs ORDER BY id DESC LIMIT 5;")
+    # Provider breakdown
+    cursor.execute("SELECT auth_provider, COUNT(*) as count FROM users GROUP BY auth_provider;")
+    provider_counts = {row["auth_provider"] or "local": row["count"] for row in cursor.fetchall()}
+
+    cursor.execute("SELECT email, action, auth_provider, timestamp FROM login_audit_logs ORDER BY id DESC LIMIT 6;")
     recent_logs = [dict(row) for row in cursor.fetchall()]
 
     conn.close()
@@ -253,5 +392,6 @@ def sql_status():
             "users": user_count,
             "login_audit_logs": log_count
         },
+        "providers": provider_counts,
         "recent_audit_logs": recent_logs
     }

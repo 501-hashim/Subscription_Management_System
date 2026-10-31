@@ -1,7 +1,7 @@
 /**
  * SQL Authentication & Database Client Service
  * Connects directly to the Backend SQLite Relational Database Engine (/api/v1/auth)
- * with automatic fallback and live SQL query transparency.
+ * with automatic fallback, live SQL query transparency, and Google OAuth support.
  */
 
 const API_BASE = 'http://localhost:8000/api/v1/auth';
@@ -57,13 +57,52 @@ export class SqlAuthService {
         throw new Error(errData.detail || 'SQL Authentication failed.');
       }
     } catch (networkError) {
-      // If user typed wrong credentials and backend responded with 401/404
       if (networkError.message && !networkError.message.includes('fetch')) {
         throw networkError;
       }
-
-      // 2. Client-Side SQL Engine Fallback
       return this._localSqlLogin(cleanEmail, password);
+    }
+  }
+
+  /**
+   * Execute Google OAuth User Sign-In
+   */
+  async googleLogin({ email, name, googleId, avatarUrl, token }) {
+    const cleanEmail = email.trim().toLowerCase();
+
+    try {
+      const res = await fetch(`${API_BASE}/google-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          name: name || cleanEmail.split('@')[0],
+          googleId: googleId || `goog-${Date.now()}`,
+          avatarUrl: avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanEmail}`,
+          token: token || 'oauth-mock-bearer-token',
+        }),
+        signal: AbortSignal.timeout(3500),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        this.lastExecutedSql = data.sql_query;
+        this.isBackendOnline = true;
+        return {
+          success: true,
+          user: data.user,
+          sqlQuery: this.lastExecutedSql,
+          engine: 'SQLite 3 (Backend Relational DB)',
+        };
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Google OAuth SQL authentication failed.');
+      }
+    } catch (networkError) {
+      if (networkError.message && !networkError.message.includes('fetch')) {
+        throw networkError;
+      }
+      return this._localSqlGoogleLogin({ email: cleanEmail, name, googleId, avatarUrl });
     }
   }
 
@@ -153,7 +192,7 @@ export class SqlAuthService {
     }
   }
 
-  // Client-Side Local SQL Transaction Fallbacks
+  // Client-Side Local SQL Fallbacks
   _localSqlLogin(email, password) {
     const users = JSON.parse(localStorage.getItem(`${STORAGE_PREFIX}users`) || 'null') || [
       { id: 'USR-001', org_id: 'ORG-001', name: 'Hashim (Lead)', email: 'hashim@brightloop.io', password_hash: 'SecurePass2025!', role: 'admin', role_title: 'Super Admin (Owner)', department: 'Engineering' },
@@ -186,6 +225,37 @@ export class SqlAuthService {
       },
       sqlQuery: this.lastExecutedSql,
       engine: 'Client SQL Store',
+    };
+  }
+
+  _localSqlGoogleLogin({ email, name, googleId, avatarUrl }) {
+    const displayName = name || email.split('@')[0];
+    const avatar = avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`;
+    const gid = googleId || `goog-${Date.now()}`;
+
+    this.lastExecutedSql = `-- Google OAuth Fallback SQL Simulation
+SELECT * FROM users WHERE LOWER(email) = '${email}';
+-- Upsert Google User Record
+INSERT INTO users (id, org_id, name, email, role, auth_provider, google_id)
+VALUES ('USR-GOOG', 'ORG-001', '${displayName}', '${email}', 'user', 'google', '${gid}')
+ON CONFLICT(email) DO UPDATE SET last_login = CURRENT_TIMESTAMP;`;
+
+    return {
+      success: true,
+      user: {
+        id: `USR-GOOG-${Date.now().toString().slice(-4)}`,
+        name: displayName,
+        email: email,
+        role: 'Google Authenticated User',
+        userType: 'user',
+        organization: 'Brightloop Technologies Inc.',
+        department: 'Operations',
+        status: 'Active',
+        authProvider: 'google',
+        avatarUrl: avatar,
+      },
+      sqlQuery: this.lastExecutedSql,
+      engine: 'Client SQL Store (Google OAuth)',
     };
   }
 

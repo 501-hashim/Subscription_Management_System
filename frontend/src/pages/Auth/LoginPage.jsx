@@ -20,8 +20,33 @@ import {
   Users,
   User,
   Database,
+  Check,
 } from 'lucide-react';
 import { authDatabase } from '../../services/authDatabase';
+
+// Official Google Multi-Color SVG Icon
+function GoogleIcon({ className = "w-4 h-4" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24">
+      <path
+        fill="#4285F4"
+        d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.03h3.88c2.27-2.09 3.66-5.17 3.66-9.12z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.03c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.13C3.27 21.44 7.34 24 12 24z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.28 14.29c-.25-.72-.38-1.49-.38-2.29s.13-1.57.38-2.29V6.57H1.25C.45 8.19 0 10.03 0 12s.45 3.81 1.25 5.43l4.03-3.14z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.27 2.56 1.25 6.57l4.03 3.14c.95-2.83 3.6-4.96 6.72-4.96z"
+      />
+    </svg>
+  );
+}
 
 export function LoginPage({
   onLogin,
@@ -73,6 +98,13 @@ export function LoginPage({
     "SELECT u.id, u.org_id, u.name, u.role, o.name AS organization\nFROM users u\nLEFT JOIN organizations o ON u.org_id = o.id\nWHERE LOWER(u.email) = 'hashim@brightloop.io';"
   );
 
+  // Google OAuth State & Modal
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [customGoogleEmail, setCustomGoogleEmail] = useState('');
+  const [customGoogleName, setCustomGoogleName] = useState('');
+  const [showCustomGoogleInput, setShowCustomGoogleInput] = useState(false);
+
   // Forgot password modal
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -96,6 +128,7 @@ export function LoginPage({
       organization: 'Brightloop Technologies Inc.',
       badge: 'Admin',
       badgeColor: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=hashim',
     },
     {
       id: 'USR-02',
@@ -106,6 +139,7 @@ export function LoginPage({
       organization: 'Brightloop Technologies Inc.',
       badge: 'Billing Lead',
       badgeColor: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarah',
     },
     {
       id: 'USR-03',
@@ -116,9 +150,11 @@ export function LoginPage({
       organization: 'Brightloop Technologies Inc.',
       badge: 'Sales Rep',
       badgeColor: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=liam',
     },
   ];
 
+  // Quick Persona Select (Credentials mode)
   const handleSelectPersona = async (persona) => {
     setEmail(persona.email);
     setPassword('SecurePass2025!');
@@ -128,11 +164,50 @@ export function LoginPage({
     try {
       const result = await authDatabase.login(persona.email, 'SecurePass2025!');
       setIsLoading(false);
-      if (result?.sqlQuery) setLastSql(result.sqlQuery); onLogin(result.user);
+      if (result?.sqlQuery) setLastSql(result.sqlQuery);
+      onLogin(result.user);
     } catch {
       setIsLoading(false);
       onLogin(persona);
     }
+  };
+
+  // Google OAuth Login Execution
+  const handleGoogleSignIn = async (account) => {
+    setIsGoogleLoading(true);
+    setErrorMessage('');
+
+    try {
+      const result = await authDatabase.googleLogin({
+        email: account.email,
+        name: account.name,
+        googleId: account.googleId || `goog-${account.email.replace(/[@.]/g, '-')}`,
+        avatarUrl: account.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${account.email}`,
+      });
+
+      setIsGoogleLoading(false);
+      setShowGoogleModal(false);
+
+      if (result?.sqlQuery) {
+        setLastSql(result.sqlQuery);
+      }
+      onLogin(result.user);
+    } catch (err) {
+      setIsGoogleLoading(false);
+      setErrorMessage(err.message || 'Google OAuth sign-in encountered an error.');
+    }
+  };
+
+  const handleCustomGoogleSubmit = (e) => {
+    e.preventDefault();
+    if (!customGoogleEmail.trim()) return;
+
+    handleGoogleSignIn({
+      name: customGoogleName.trim() || customGoogleEmail.split('@')[0],
+      email: customGoogleEmail.trim().toLowerCase(),
+      googleId: `goog-${Date.now()}`,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${customGoogleEmail}`,
+    });
   };
 
   const handleForgotSubmit = (e) => {
@@ -187,7 +262,8 @@ export function LoginPage({
       if (mode === 'signin') {
         const result = await authDatabase.login(cleanEmail, password);
         setIsLoading(false);
-        if (result?.sqlQuery) setLastSql(result.sqlQuery); onLogin(result.user);
+        if (result?.sqlQuery) setLastSql(result.sqlQuery);
+        onLogin(result.user);
       } else {
         if (registrationType === 'organization') {
           const result = await authDatabase.registerOrganization({
@@ -199,7 +275,8 @@ export function LoginPage({
             password: password,
           });
           setIsLoading(false);
-          if (result?.sqlQuery) setLastSql(result.sqlQuery); onLogin(result.user, true);
+          if (result?.sqlQuery) setLastSql(result.sqlQuery);
+          onLogin(result.user, true);
         } else {
           const result = await authDatabase.registerUser({
             name: fullName,
@@ -209,7 +286,8 @@ export function LoginPage({
             department: department,
           });
           setIsLoading(false);
-          if (result?.sqlQuery) setLastSql(result.sqlQuery); onLogin(result.user, true);
+          if (result?.sqlQuery) setLastSql(result.sqlQuery);
+          onLogin(result.user, true);
         }
       }
     } catch (err) {
@@ -220,7 +298,7 @@ export function LoginPage({
 
   return (
     <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col justify-between relative overflow-hidden font-sans selection:bg-blue-500 selection:text-white py-6">
-      {/* Background Mesh Glows */}
+      {/* Background Radial Glows */}
       <div className="absolute top-[-10%] left-[-10%] w-[550px] h-[550px] bg-blue-600/15 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[550px] h-[550px] bg-indigo-600/15 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-sky-500/5 rounded-full blur-[160px] pointer-events-none" />
@@ -254,7 +332,6 @@ export function LoginPage({
           }}
           className="bg-slate-900/85 backdrop-blur-xl border border-white/10 rounded-3xl p-7 sm:p-8 shadow-2xl shadow-black/70 relative will-change-transform"
         >
-          
           {/* Card Header */}
           <div className="text-center space-y-1.5 mb-6">
             <h1 className="text-2xl font-extrabold tracking-tight text-white">
@@ -307,11 +384,11 @@ export function LoginPage({
 
           {/* 1-Click Persona Quick Testing Pill Tray (Sign-in mode) */}
           {mode === 'signin' && (
-            <div className="mb-6 p-3 rounded-2xl bg-white/[0.03] border border-white/5">
+            <div className="mb-5 p-3 rounded-2xl bg-white/[0.03] border border-white/5">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                  1-Click Demo Login
+                  1-Click Demo Personas
                 </span>
                 <span className="text-[10px] text-blue-400 font-medium">Quick switch</span>
               </div>
@@ -415,6 +492,37 @@ export function LoginPage({
             </div>
           )}
 
+          {/* GOOGLE SIGN IN OAUTH BUTTON */}
+          {(mode === 'signin' || (mode === 'signup' && registrationType === 'user')) && (
+            <div className="mb-5">
+              <button
+                type="button"
+                onClick={() => setShowGoogleModal(true)}
+                className="w-full py-2.5 px-4 bg-slate-800/80 hover:bg-slate-800 border border-white/15 hover:border-white/30 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-3 transition-all shadow-md hover:shadow-lg hover:shadow-blue-500/5 group cursor-pointer"
+              >
+                <div className="p-1 rounded-md bg-white flex items-center justify-center shrink-0">
+                  <GoogleIcon className="w-3.5 h-3.5" />
+                </div>
+                <span>
+                  {mode === 'signin' ? 'Continue with Google' : 'Sign up with Google (OAuth)'}
+                </span>
+                <span className="text-[10px] py-0.5 px-1.5 rounded bg-blue-500/20 text-blue-300 font-mono text-[9px] border border-blue-500/30 ml-auto sm:ml-0">
+                  User OAuth
+                </span>
+              </button>
+
+              {/* Or Divider */}
+              <div className="relative my-4 flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-white/10" />
+                </div>
+                <div className="relative px-3 bg-[#0d1322] text-[10px] font-semibold text-slate-400 uppercase tracking-wider rounded-md">
+                  {mode === 'signin' ? 'or continue with credentials' : 'or register with password'}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Inline Error Alert */}
           {errorMessage && (
             <div className="mb-5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-start gap-2 animate-in fade-in">
@@ -448,7 +556,7 @@ export function LoginPage({
                         type="text"
                         value={organizationName}
                         onChange={(e) => setOrganizationName(e.target.value)}
-                        placeholder="e.g. Acme Cloud Corp"
+                        placeholder="Acme Global Inc."
                         className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-950/70 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-slate-500 transition-all"
                         required
                       />
@@ -457,39 +565,39 @@ export function LoginPage({
 
                   <div>
                     <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                      Team Size
+                      Company Size
                     </label>
                     <div className="relative">
-                      <Users className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <Users className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <select
                         value={organizationSize}
                         onChange={(e) => setOrganizationSize(e.target.value)}
-                        className="w-full pl-10 pr-3 py-2.5 text-xs bg-slate-950/70 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+                        className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-950/70 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white transition-all appearance-none cursor-pointer"
                       >
-                        <option value="1-10 employees">1 - 10 employees (Startup)</option>
-                        <option value="11-50 employees">11 - 50 employees (Growth)</option>
-                        <option value="51-200 employees">51 - 200 employees (Mid-Market)</option>
-                        <option value="200+ employees">200+ employees (Enterprise)</option>
+                        <option value="1-10 employees">1-10 employees</option>
+                        <option value="11-50 employees">11-50 employees</option>
+                        <option value="51-200 employees">51-200 employees</option>
+                        <option value="200+ employees">200+ employees</option>
                       </select>
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                      Industry
+                      Industry Domain
                     </label>
                     <div className="relative">
-                      <Briefcase className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <Globe className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <select
                         value={organizationIndustry}
                         onChange={(e) => setOrganizationIndustry(e.target.value)}
-                        className="w-full pl-10 pr-3 py-2.5 text-xs bg-slate-950/70 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+                        className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-950/70 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white transition-all appearance-none cursor-pointer"
                       >
                         <option value="SaaS & Software">SaaS & Software</option>
-                        <option value="E-Commerce & Retail">E-Commerce & Retail</option>
                         <option value="Financial Services">Financial Services</option>
-                        <option value="Digital Agency">Digital Agency</option>
-                        <option value="Consulting & Ops">Consulting & Ops</option>
+                        <option value="E-Commerce & Retail">E-Commerce & Retail</option>
+                        <option value="Healthcare & Life Sci">Healthcare & Life Sci</option>
+                        <option value="Media & Publishing">Media & Publishing</option>
                       </select>
                     </div>
                   </div>
@@ -497,24 +605,26 @@ export function LoginPage({
               </div>
             )}
 
-            {/* USER PROFILE FIELDS */}
+            {/* FULL NAME & ROLE/DEPARTMENT (FOR REGISTRATION) */}
             {mode === 'signup' && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between pt-1">
+              <div className="space-y-3 pb-3 border-b border-white/10">
+                <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
-                    <UserCheck className="w-3.5 h-3.5" />
-                    {registrationType === 'organization' ? 'Organization Admin Profile' : 'User Details'}
+                    <User className="w-3.5 h-3.5" />
+                    {registrationType === 'organization' ? 'Admin Contact Person' : 'User Profile Details'}
                   </span>
-                  <span className="text-[10px] text-slate-400">Personal Information</span>
+                  <span className="text-[10px] text-slate-400">
+                    {registrationType === 'organization' ? 'Account Owner' : 'Team Member'}
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
+                  <div className="sm:col-span-2">
                     <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                      Full Name
+                      Full Legal Name
                     </label>
                     <div className="relative">
-                      <UserCheck className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
                         value={fullName}
@@ -527,25 +637,51 @@ export function LoginPage({
                   </div>
 
                   {registrationType === 'user' ? (
-                    <div>
-                      <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                        Designated Role
-                      </label>
-                      <select
-                        value={role}
-                        onChange={(e) => setRole(e.target.value)}
-                        className="w-full px-3 py-2.5 text-xs bg-slate-950/70 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
-                      >
-                        <option value="Billing Manager">Billing Manager</option>
-                        <option value="Sales Representative">Sales Representative</option>
-                        <option value="Operations Specialist">Operations Specialist</option>
-                        <option value="Financial Analyst">Financial Analyst</option>
-                      </select>
-                    </div>
+                    <>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                          Job Role / Title
+                        </label>
+                        <div className="relative">
+                          <Briefcase className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                          <select
+                            value={role}
+                            onChange={(e) => setRole(e.target.value)}
+                            className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-950/70 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white transition-all appearance-none cursor-pointer"
+                          >
+                            <option value="Billing Manager">Billing Manager</option>
+                            <option value="Sales Representative">Sales Representative</option>
+                            <option value="Operations Analyst">Operations Analyst</option>
+                            <option value="Product Manager">Product Manager</option>
+                            <option value="Finance Lead">Finance Lead</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                          Department
+                        </label>
+                        <div className="relative">
+                          <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                          <select
+                            value={department}
+                            onChange={(e) => setDepartment(e.target.value)}
+                            className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-950/70 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white transition-all appearance-none cursor-pointer"
+                          >
+                            <option value="Finance">Finance</option>
+                            <option value="Sales">Sales</option>
+                            <option value="Operations">Operations</option>
+                            <option value="Engineering">Engineering</option>
+                            <option value="Executive">Executive</option>
+                          </select>
+                        </div>
+                      </div>
+                    </>
                   ) : (
-                    <div>
+                    <div className="sm:col-span-2">
                       <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                        Administrative Authority
+                        Assigned Organization Role
                       </label>
                       <div className="w-full px-3 py-2.5 text-xs bg-slate-950/50 border border-white/10 rounded-xl text-blue-300 font-semibold flex items-center justify-between">
                         <span>Super Admin (Workspace Owner)</span>
@@ -677,7 +813,7 @@ export function LoginPage({
             </button>
           </form>
 
-                    {/* Database Live Connectivity Indicator & Live SQL Inspector */}
+          {/* Database Live Connectivity Indicator & Live SQL Inspector */}
           <div className="mt-5 pt-4 border-t border-white/5 space-y-2">
             <div className="flex items-center justify-between text-[11px] text-slate-400">
               <span className="flex items-center gap-1.5">
@@ -715,6 +851,137 @@ export function LoginPage({
         <p>Brightloop Subscription Management Platform • Secure Operations Portal</p>
       </footer>
 
+      {/* GOOGLE OAUTH MODAL / ACCOUNT CHOOSER */}
+      {showGoogleModal && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#181c24] border border-white/10 rounded-2xl max-w-sm w-full p-6 shadow-2xl text-slate-100 animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header with Google Branding */}
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-xs">
+                  <GoogleIcon className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-white leading-tight">Sign in with Google</h3>
+                  <p className="text-[10px] text-slate-400">Choose an account to continue</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowGoogleModal(false);
+                  setShowCustomGoogleInput(false);
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Scope explanation */}
+            <div className="py-2.5 text-[11px] text-slate-400 border-b border-white/5">
+              <span>to continue to <strong className="text-slate-200">Brightloop Subscription Platform</strong></span>
+            </div>
+
+            {/* Account List */}
+            <div className="mt-3 space-y-2">
+              {demoPersonas.map((account) => (
+                <button
+                  key={account.id}
+                  type="button"
+                  disabled={isGoogleLoading}
+                  onClick={() => handleGoogleSignIn({
+                    name: account.name,
+                    email: account.email,
+                    googleId: `goog-${account.id}`,
+                    avatar: account.avatar
+                  })}
+                  className="w-full p-2.5 rounded-xl bg-slate-800/40 hover:bg-slate-800 border border-white/5 hover:border-blue-500/40 text-left transition-all flex items-center gap-3 group cursor-pointer disabled:opacity-50"
+                >
+                  <img
+                    src={account.avatar}
+                    alt={account.name}
+                    className="w-8 h-8 rounded-full bg-blue-500/20 border border-white/10 shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold text-slate-200 group-hover:text-blue-400 truncate">
+                      {account.name}
+                    </div>
+                    <div className="text-[10px] text-slate-400 truncate">
+                      {account.email}
+                    </div>
+                  </div>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20 shrink-0">
+                    {account.badge}
+                  </span>
+                </button>
+              ))}
+
+              {/* Use Another Google Account Accordion */}
+              {!showCustomGoogleInput ? (
+                <button
+                  type="button"
+                  onClick={() => setShowCustomGoogleInput(true)}
+                  className="w-full p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800/60 border border-dashed border-white/15 hover:border-white/30 text-left transition-all flex items-center gap-3 text-slate-300 hover:text-white cursor-pointer"
+                >
+                  <div className="w-8 h-8 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center shrink-0">
+                    <User className="w-4 h-4 text-slate-400" />
+                  </div>
+                  <div className="text-xs font-medium">Use another Google account</div>
+                </button>
+              ) : (
+                <form onSubmit={handleCustomGoogleSubmit} className="p-3 bg-slate-950/70 border border-white/10 rounded-xl space-y-2.5 mt-2">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-blue-400">
+                    Enter Google Account Details
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-slate-400 mb-1">Full Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Jordan Lee"
+                      value={customGoogleName}
+                      onChange={(e) => setCustomGoogleName(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs bg-slate-900 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-slate-400 mb-1">Google Email Address</label>
+                    <input
+                      type="email"
+                      placeholder="jordan.lee@gmail.com"
+                      value={customGoogleEmail}
+                      onChange={(e) => setCustomGoogleEmail(e.target.value)}
+                      required
+                      className="w-full px-2.5 py-1.5 text-xs bg-slate-900 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomGoogleInput(false)}
+                      className="flex-1 py-1.5 text-[11px] text-slate-400 hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isGoogleLoading}
+                      className="flex-1 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[11px] font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                    >
+                      {isGoogleLoading ? 'Connecting...' : 'Authorize OAuth'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+
+            {/* Google Footer Disclaimer */}
+            <div className="mt-4 pt-3 border-t border-white/5 text-[9px] text-slate-500 leading-normal">
+              To continue, Google will share your name, email address, language preference, and profile picture with Brightloop.
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Forgot Password Modal */}
       {showForgotModal && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
@@ -728,7 +995,7 @@ export function LoginPage({
               </div>
               <button
                 onClick={() => setShowForgotModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5"
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -759,7 +1026,7 @@ export function LoginPage({
                 <button
                   type="button"
                   onClick={() => setShowForgotModal(false)}
-                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition-colors"
+                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Return to Sign In
                 </button>
@@ -788,13 +1055,13 @@ export function LoginPage({
                   <button
                     type="button"
                     onClick={() => setShowForgotModal(false)}
-                    className="px-3 py-2 text-xs font-medium text-slate-400 hover:text-white"
+                    className="px-3 py-2 text-xs font-medium text-slate-400 hover:text-white cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-sm"
+                    className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-sm cursor-pointer"
                   >
                     Send Reset Link
                   </button>
