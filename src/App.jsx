@@ -12,6 +12,7 @@ import { DiscountsPage } from './pages/Discounts/DiscountsPage';
 import { ReportsPage } from './pages/Reports/ReportsPage';
 import { SettingsPage } from './pages/Settings/SettingsPage';
 import { CustomerPortalPage } from './pages/CustomerPortal/CustomerPortalPage';
+import { LoginPage } from './pages/Auth/LoginPage';
 
 import {
   initialDashboardData,
@@ -28,8 +29,10 @@ import {
 } from './data/mockData';
 
 export function App() {
-  // Mode switcher: 'admin' or 'customer'
-  const [viewMode, setViewMode] = useState('customer'); // Default to customer or easy switch
+  // Authentication & Session state
+  const [currentUser, setCurrentUser] = useState(null); // null = show LoginPage
+  const [userRole, setUserRole] = useState('customer'); // 'customer' or 'admin'
+  const [viewMode, setViewMode] = useState('customer'); // 'customer' or 'admin'
   const [activeTab, setActiveTab] = useState('dashboard');
 
   // Application state
@@ -45,33 +48,46 @@ export function App() {
   const [users, setUsers] = useState(initialUsers);
   const [companySettings, setCompanySettings] = useState(initialCompanySettings);
 
+  // Authentication handlers
+  const handleLogin = (user, role) => {
+    setCurrentUser(user);
+    setUserRole(role);
+    setViewMode(role);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setUserRole('customer');
+    setViewMode('customer');
+  };
+
   // State modification handlers for Admin
   const handleAddCustomer = (newCustomer) => {
-    setCustomers([newCustomer, ...customers]);
+    setCustomers((prev) => [newCustomer, ...prev]);
   };
 
   const handleAddProduct = (newProduct) => {
-    setProducts([newProduct, ...products]);
+    setProducts((prev) => [newProduct, ...products]);
   };
 
   const handleAddPlan = (newPlan) => {
-    setPlans([newPlan, ...plans]);
+    setPlans((prev) => [newPlan, ...plans]);
   };
 
   const handleAddQuotation = (newQuotation) => {
-    setQuotations([newQuotation, ...quotations]);
+    setQuotations((prev) => [newQuotation, ...quotations]);
   };
 
   const handleAddInvoice = (newInvoice) => {
-    setInvoices([newInvoice, ...invoices]);
+    setInvoices((prev) => [newInvoice, ...invoices]);
   };
 
   const handleAddDiscount = (newDiscount) => {
-    setDiscounts([newDiscount, ...discounts]);
+    setDiscounts((prev) => [newDiscount, ...discounts]);
   };
 
   const handleAddUser = (newUser) => {
-    setUsers([newUser, ...users]);
+    setUsers((prev) => [newUser, ...users]);
   };
 
   const handleSaveCompanySettings = (updated) => {
@@ -192,7 +208,19 @@ export function App() {
     handleAddSubscription(newSub, newInvoice, newPayment);
   };
 
-  // If in Customer Portal mode:
+  // 1. If not authenticated, render Login Page
+  if (!currentUser) {
+    return (
+      <LoginPage
+        customers={customers}
+        users={users}
+        onLogin={handleLogin}
+        onRegisterCustomer={handleAddCustomer}
+      />
+    );
+  }
+
+  // 2. If in Customer Portal mode:
   if (viewMode === 'customer') {
     return (
       <CustomerPortalPage
@@ -204,7 +232,9 @@ export function App() {
         discounts={discounts}
         customers={customers}
         quotations={quotations}
-        onSwitchToAdmin={() => setViewMode('admin')}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        onSwitchToAdmin={userRole === 'admin' ? () => setViewMode('admin') : undefined}
         onAddSubscription={handleAddSubscription}
         onToggleAutoRenew={handleToggleAutoRenew}
         onCancelSubscription={handleCancelSubscription}
@@ -214,12 +244,14 @@ export function App() {
     );
   }
 
-  // Otherwise in Admin Operations & Billing mode:
+  // 3. Otherwise in Admin Operations & Billing mode:
   return (
     <Layout
       activeTab={activeTab}
       onSelectTab={setActiveTab}
       onSwitchToCustomer={() => setViewMode('customer')}
+      currentUser={currentUser}
+      onLogout={handleLogout}
     >
       {activeTab === 'dashboard' && (
         <DashboardPage

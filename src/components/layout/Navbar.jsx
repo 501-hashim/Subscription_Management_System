@@ -1,8 +1,16 @@
 import React, { useState } from 'react';
-import { Search, Bell, Menu, ShieldCheck, CheckCircle2, ShoppingBag } from 'lucide-react';
+import { Search, Bell, Menu, ShieldCheck, CheckCircle2, ShoppingBag, LogOut } from 'lucide-react';
 import { Button } from '../common/Button';
 
-export function Navbar({ onToggleSidebar, activeTitle, globalSearch, setGlobalSearch, onSwitchToCustomer }) {
+export function Navbar({ 
+  onToggleSidebar, 
+  activeTitle, 
+  globalSearch, 
+  setGlobalSearch, 
+  onSwitchToCustomer,
+  currentUser,
+  onLogout
+}) {
   const [showNotifications, setShowNotifications] = useState(false);
 
   const notifications = [
@@ -10,6 +18,10 @@ export function Navbar({ onToggleSidebar, activeTitle, globalSearch, setGlobalSe
     { id: 2, title: 'Quotation QT-2025-089 accepted by Acme Corp', time: '1h ago', unread: true },
     { id: 3, title: 'New subscription SUB-8407 created', time: '3h ago', unread: false },
   ];
+
+  const adminName = currentUser?.name || 'Hashim (Lead)';
+  const adminRole = currentUser?.role || 'Super Admin';
+  const adminInitial = adminName[0] || 'A';
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-20">
@@ -24,7 +36,7 @@ export function Navbar({ onToggleSidebar, activeTitle, globalSearch, setGlobalSe
         </button>
         <div>
           <h2 className="text-sm font-semibold text-slate-900">{activeTitle}</h2>
-          <p className="text-[11px] text-slate-400">Brightloop Software • Subscription Management Hub</p>
+          <p className="text-[11px] text-slate-400">Brightloop Software • Subscription Operations</p>
         </div>
       </div>
 
@@ -49,7 +61,7 @@ export function Navbar({ onToggleSidebar, activeTitle, globalSearch, setGlobalSe
             size="sm"
             onClick={onSwitchToCustomer}
             className="border-blue-200 bg-blue-50/50 text-blue-700 hover:bg-blue-100/70 font-semibold text-xs whitespace-nowrap"
-            title="Open the customer storefront & self-service portal"
+            title="Preview customer self-service portal"
           >
             <ShoppingBag className="w-3.5 h-3.5 mr-1.5 text-blue-600" />
             <span className="hidden sm:inline">Customer</span> Storefront
@@ -107,19 +119,30 @@ export function Navbar({ onToggleSidebar, activeTitle, globalSearch, setGlobalSe
         <div className="flex items-center gap-3">
           <div className="relative">
             <div className="w-8 h-8 rounded-full bg-linear-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs ring-2 ring-blue-100">
-              H
+              {adminInitial}
             </div>
             <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
           </div>
           <div className="hidden sm:block text-left">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-semibold text-slate-900">Hashim</span>
+              <span className="text-xs font-semibold text-slate-900">{adminName}</span>
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-700">
-                <ShieldCheck className="w-3 h-3 mr-0.5" /> Admin
+                <ShieldCheck className="w-3 h-3 mr-0.5" /> {adminRole}
               </span>
             </div>
-            <span className="text-[10px] text-slate-400">Lead Developer</span>
+            <span className="text-[10px] text-slate-400">{currentUser?.email || 'admin@brightloop.io'}</span>
           </div>
+
+          {/* Logout Button */}
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors ml-1"
+              title="Sign Out of Operations Console"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
     </header>
