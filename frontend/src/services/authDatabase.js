@@ -79,9 +79,9 @@ export class SqlAuthService {
           name: name || cleanEmail.split('@')[0],
           googleId: googleId || `goog-${Date.now()}`,
           avatarUrl: avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanEmail}`,
-          token: token || 'oauth-mock-bearer-token',
+          token: token || null,
         }),
-        signal: AbortSignal.timeout(3500),
+        signal: AbortSignal.timeout(4500),
       });
 
       if (res.ok) {
@@ -92,6 +92,7 @@ export class SqlAuthService {
           success: true,
           user: data.user,
           sqlQuery: this.lastExecutedSql,
+          tokenVerified: data.tokenVerified,
           engine: 'SQLite 3 (Backend Relational DB)',
         };
       } else {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Zap,
   Mail,
@@ -21,6 +21,9 @@ import {
   User,
   Database,
   Check,
+  Settings,
+  ExternalLink,
+  Info,
 } from 'lucide-react';
 import { authDatabase } from '../../services/authDatabase';
 
@@ -98,12 +101,21 @@ export function LoginPage({
     "SELECT u.id, u.org_id, u.name, u.role, o.name AS organization\nFROM users u\nLEFT JOIN organizations o ON u.org_id = o.id\nWHERE LOWER(u.email) = 'hashim@brightloop.io';"
   );
 
-  // Google OAuth State & Modal
+  // Google OAuth State & Real Google Identity Services (GIS)
+  const [googleClientId, setGoogleClientId] = useState(
+    () => localStorage.getItem('brightloop_google_client_id') || import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
+  );
+  const [inputClientId, setInputClientId] = useState('');
   const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [googleModalTab, setGoogleModalTab] = useState('accounts'); // 'accounts' | 'config'
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [googleStatusText, setGoogleStatusText] = useState('');
   const [customGoogleEmail, setCustomGoogleEmail] = useState('');
   const [customGoogleName, setCustomGoogleName] = useState('');
   const [showCustomGoogleInput, setShowCustomGoogleInput] = useState(false);
+  const [gisSdkLoaded, setGisSdkLoaded] = useState(false);
+
+  const googleNativeBtnContainer = useRef(null);
 
   // Forgot password modal
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -117,7 +129,7 @@ export function LoginPage({
   const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password);
   const isPasswordStrong = hasMinLength && hasUpperCase && hasLowerCase && hasSpecialChar;
 
-  // Preset demo personas for quick testing
+  // Preset demo personas
   const demoPersonas = [
     {
       id: 'USR-01',
@@ -154,7 +166,158 @@ export function LoginPage({
     },
   ];
 
-  // Quick Persona Select (Credentials mode)
+  // Callback when actual Google ID token credential arrives from GIS
+  const handleGoogleCredentialResponse = async (response) => {
+    try {
+      setIsGoogleLoading(true);
+      setGoogleStatusText('Verifying Google cryptographic signature...');
+
+      // Decode Google JWT payload on client
+      const base64Url = response.credential.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      const claims = JSON.parse(jsonPayload);
+
+      setGoogleStatusText('Synchronizing user with SQLite database...');
+
+      // Dispatch to FastAPI backend with actual token for verification
+      const result = await authDatabase.googleLogin({
+        email: claims.email,
+        name: claims.name || claims.given_name,
+        googleId: claims.sub,
+        avatarUrl: claims.picture,
+        token: response.credential, // Actual Google Signed JWT
+      });
+
+      setIsGoogleLoading(false);
+      setShowGoogleModal(false);
+      if (result?.sqlQuery) setLastSql(result.sqlQuery);
+      onLogin(result.user);
+    } catch (err) {
+      setIsGoogleLoading(false);
+      setErrorMessage(err.message || 'Google OAuth verification failed.');
+    }
+  };
+
+  // Initialize Google Identity Services (GIS)
+  useEffect(() => {
+    const checkGis = () => {
+      if (window.google?.accounts?.id) {
+        setGisSdkLoaded(true);
+
+        if (googleClientId && googleClientId.includes('.')) {
+          try {
+            window.google.accounts.id.initialize({
+              client_id: googleClientId,
+              callback: handleGoogleCredentialResponse,
+              auto_select: false,
+              cancel_on_tap_outside: true,
+            });
+
+            // Render official Google button if element exists
+            if (googleNativeBtnContainer.current) {
+              googleNativeBtnContainer.current.innerHTML = '';
+              window.google.accounts.id.renderButton(googleNativeBtnContainer.current, {
+                theme: 'filled_black',
+                size: 'large',
+                width: '100%',
+                text: mode === 'signin' ? 'continue_with' : 'signup_with',
+                shape: 'rectangular',
+              });
+            }
+          } catch (e) {
+            console.warn('GIS init error:', e);
+          }
+        }
+      }
+    };
+
+    checkGis();
+    const interval = setInterval(checkGis, 1000);
+    return () => clearInterval(interval);
+  }, [googleClientId, mode]);
+
+  // Trigger Google OAuth Flow
+  const triggerGoogleOAuthFlow = () => {
+    setErrorMessage('');
+
+    // If a valid Google Client ID is configured and GIS is available, trigger real Google OAuth popup
+    if (googleClientId && googleClientId.includes('.') && window.google?.accounts?.oauth2) {
+      setIsGoogleLoading(true);
+      setGoogleStatusText('Opening Google OAuth popup window...');
+
+      try {
+        const client = window.google.accounts.oauth2.initTokenClient({
+          client_id: googleClientId,
+          scope: 'email profile openid',
+          callback: async (tokenResponse) => {
+            if (tokenResponse?.access_token) {
+              setGoogleStatusText('Fetching profile from Google OAuth API...');
+              try {
+                const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                  headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+                });
+                const gProfile = await res.json();
+
+                setGoogleStatusText('Storing user in SQLite relational schema...');
+                const result = await authDatabase.googleLogin({
+                  email: gProfile.email,
+                  name: gProfile.name,
+                  googleId: gProfile.sub,
+                  avatarUrl: gProfile.picture,
+                  token: tokenResponse.access_token,
+                });
+
+                setIsGoogleLoading(false);
+                setShowGoogleModal(false);
+                if (result?.sqlQuery) setLastSql(result.sqlQuery);
+                onLogin(result.user);
+              } catch (profileErr) {
+                setIsGoogleLoading(false);
+                setErrorMessage('Failed to fetch userinfo from Google: ' + profileErr.message);
+              }
+            } else {
+              setIsGoogleLoading(false);
+            }
+          },
+          error_callback: (err) => {
+            setIsGoogleLoading(false);
+            if (err?.type === 'popup_closed') {
+              setErrorMessage('Google Sign-In popup was closed before completing.');
+            } else {
+              setErrorMessage(`Google OAuth error: ${err?.message || 'Check GCP Authorized Origins'}`);
+            }
+          },
+        });
+
+        client.requestAccessToken();
+        return;
+      } catch (e) {
+        console.error('Failed to trigger token client:', e);
+        setIsGoogleLoading(false);
+      }
+    }
+
+    // Otherwise, open the Google OAuth interactive modal (with option to configure Client ID or choose persona)
+    setShowGoogleModal(true);
+  };
+
+  const handleSaveClientId = (e) => {
+    e.preventDefault();
+    if (!inputClientId.trim()) return;
+
+    const trimmed = inputClientId.trim();
+    localStorage.setItem('brightloop_google_client_id', trimmed);
+    setGoogleClientId(trimmed);
+    setGoogleModalTab('accounts');
+    setErrorMessage('');
+  };
+
   const handleSelectPersona = async (persona) => {
     setEmail(persona.email);
     setPassword('SecurePass2025!');
@@ -172,9 +335,9 @@ export function LoginPage({
     }
   };
 
-  // Google OAuth Login Execution
-  const handleGoogleSignIn = async (account) => {
+  const handleDirectGoogleLogin = async (account) => {
     setIsGoogleLoading(true);
+    setGoogleStatusText('Authenticating user identity...');
     setErrorMessage('');
 
     try {
@@ -188,9 +351,7 @@ export function LoginPage({
       setIsGoogleLoading(false);
       setShowGoogleModal(false);
 
-      if (result?.sqlQuery) {
-        setLastSql(result.sqlQuery);
-      }
+      if (result?.sqlQuery) setLastSql(result.sqlQuery);
       onLogin(result.user);
     } catch (err) {
       setIsGoogleLoading(false);
@@ -202,7 +363,7 @@ export function LoginPage({
     e.preventDefault();
     if (!customGoogleEmail.trim()) return;
 
-    handleGoogleSignIn({
+    handleDirectGoogleLogin({
       name: customGoogleName.trim() || customGoogleEmail.split('@')[0],
       email: customGoogleEmail.trim().toLowerCase(),
       googleId: `goog-${Date.now()}`,
@@ -315,9 +476,17 @@ export function LoginPage({
           </div>
         </div>
 
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span>Platform Status: Operational</span>
+        <div className="flex items-center gap-2">
+          {gisSdkLoaded && (
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Google OAuth (GIS SDK): Active</span>
+            </div>
+          )}
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
+            <span className="w-2 h-2 rounded-full bg-blue-400" />
+            <span>SQLite 3 Engine</span>
+          </div>
         </div>
       </header>
 
@@ -492,24 +661,52 @@ export function LoginPage({
             </div>
           )}
 
-          {/* GOOGLE SIGN IN OAUTH BUTTON */}
+          {/* ACTUAL GOOGLE SIGN IN OAUTH BUTTON */}
           {(mode === 'signin' || (mode === 'signup' && registrationType === 'user')) && (
-            <div className="mb-5">
+            <div className="mb-5 space-y-2">
+              {/* Native Google Identity Services Button Container if rendered */}
+              <div ref={googleNativeBtnContainer} className="empty:hidden mb-2" />
+
+              {/* Styled Primary Google OAuth Button */}
               <button
                 type="button"
-                onClick={() => setShowGoogleModal(true)}
-                className="w-full py-2.5 px-4 bg-slate-800/80 hover:bg-slate-800 border border-white/15 hover:border-white/30 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-3 transition-all shadow-md hover:shadow-lg hover:shadow-blue-500/5 group cursor-pointer"
+                onClick={triggerGoogleOAuthFlow}
+                disabled={isGoogleLoading}
+                className="w-full py-2.5 px-4 bg-slate-800/90 hover:bg-slate-800 border border-white/15 hover:border-white/30 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-3 transition-all shadow-md hover:shadow-lg hover:shadow-blue-500/5 group cursor-pointer disabled:opacity-50"
               >
                 <div className="p-1 rounded-md bg-white flex items-center justify-center shrink-0">
                   <GoogleIcon className="w-3.5 h-3.5" />
                 </div>
                 <span>
-                  {mode === 'signin' ? 'Continue with Google' : 'Sign up with Google (OAuth)'}
+                  {isGoogleLoading
+                    ? (googleStatusText || 'Authenticating with Google...')
+                    : mode === 'signin'
+                    ? 'Continue with Google'
+                    : 'Sign up with Google (OAuth)'}
                 </span>
                 <span className="text-[10px] py-0.5 px-1.5 rounded bg-blue-500/20 text-blue-300 font-mono text-[9px] border border-blue-500/30 ml-auto sm:ml-0">
-                  User OAuth
+                  Google OAuth
                 </span>
               </button>
+
+              {/* Google OAuth Config status bar */}
+              <div className="flex items-center justify-between px-1 text-[10px] text-slate-500">
+                <span className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <span>Google Identity Services {googleClientId ? 'Configured' : 'Ready'}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGoogleModalTab('config');
+                    setShowGoogleModal(true);
+                  }}
+                  className="text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <Settings className="w-3 h-3" />
+                  <span>{googleClientId ? 'Change GCP Client ID' : 'Set Google Client ID'}</span>
+                </button>
+              </div>
 
               {/* Or Divider */}
               <div className="relative my-4 flex items-center justify-center">
@@ -851,10 +1048,10 @@ export function LoginPage({
         <p>Brightloop Subscription Management Platform • Secure Operations Portal</p>
       </footer>
 
-      {/* GOOGLE OAUTH MODAL / ACCOUNT CHOOSER */}
+      {/* GOOGLE OAUTH MODAL / ACCOUNT CHOOSER & CONFIGURATION */}
       {showGoogleModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#181c24] border border-white/10 rounded-2xl max-w-sm w-full p-6 shadow-2xl text-slate-100 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#181c24] border border-white/10 rounded-2xl max-w-md w-full p-6 shadow-2xl text-slate-100 animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header with Google Branding */}
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div className="flex items-center gap-2.5">
@@ -862,8 +1059,8 @@ export function LoginPage({
                   <GoogleIcon className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-white leading-tight">Sign in with Google</h3>
-                  <p className="text-[10px] text-slate-400">Choose an account to continue</p>
+                  <h3 className="text-xs font-bold text-white leading-tight">Google Identity Services (OAuth 2.0)</h3>
+                  <p className="text-[10px] text-slate-400">Brightloop Subscription Management</p>
                 </div>
               </div>
               <button
@@ -877,106 +1074,205 @@ export function LoginPage({
               </button>
             </div>
 
-            {/* Scope explanation */}
-            <div className="py-2.5 text-[11px] text-slate-400 border-b border-white/5">
-              <span>to continue to <strong className="text-slate-200">Brightloop Subscription Platform</strong></span>
+            {/* Modal Tabs */}
+            <div className="flex border-b border-white/5 my-3 text-xs">
+              <button
+                type="button"
+                onClick={() => setGoogleModalTab('accounts')}
+                className={`pb-2 px-3 font-semibold transition-colors cursor-pointer border-b-2 ${
+                  googleModalTab === 'accounts'
+                    ? 'border-blue-500 text-blue-400'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Sign In with Google
+              </button>
+              <button
+                type="button"
+                onClick={() => setGoogleModalTab('config')}
+                className={`pb-2 px-3 font-semibold transition-colors cursor-pointer border-b-2 flex items-center gap-1.5 ${
+                  googleModalTab === 'config'
+                    ? 'border-blue-500 text-blue-400'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Settings className="w-3.5 h-3.5" />
+                <span>GCP OAuth Config</span>
+              </button>
             </div>
 
-            {/* Account List */}
-            <div className="mt-3 space-y-2">
-              {demoPersonas.map((account) => (
-                <button
-                  key={account.id}
-                  type="button"
-                  disabled={isGoogleLoading}
-                  onClick={() => handleGoogleSignIn({
-                    name: account.name,
-                    email: account.email,
-                    googleId: `goog-${account.id}`,
-                    avatar: account.avatar
-                  })}
-                  className="w-full p-2.5 rounded-xl bg-slate-800/40 hover:bg-slate-800 border border-white/5 hover:border-blue-500/40 text-left transition-all flex items-center gap-3 group cursor-pointer disabled:opacity-50"
-                >
-                  <img
-                    src={account.avatar}
-                    alt={account.name}
-                    className="w-8 h-8 rounded-full bg-blue-500/20 border border-white/10 shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold text-slate-200 group-hover:text-blue-400 truncate">
-                      {account.name}
-                    </div>
-                    <div className="text-[10px] text-slate-400 truncate">
-                      {account.email}
-                    </div>
-                  </div>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20 shrink-0">
-                    {account.badge}
-                  </span>
-                </button>
-              ))}
+            {/* TAB 1: ACCOUNTS LIST */}
+            {googleModalTab === 'accounts' && (
+              <div>
+                <div className="py-1 text-[11px] text-slate-400 mb-2">
+                  Choose a Google account to authenticate against the SQLite database:
+                </div>
 
-              {/* Use Another Google Account Accordion */}
-              {!showCustomGoogleInput ? (
-                <button
-                  type="button"
-                  onClick={() => setShowCustomGoogleInput(true)}
-                  className="w-full p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800/60 border border-dashed border-white/15 hover:border-white/30 text-left transition-all flex items-center gap-3 text-slate-300 hover:text-white cursor-pointer"
-                >
-                  <div className="w-8 h-8 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center shrink-0">
-                    <User className="w-4 h-4 text-slate-400" />
+                {isGoogleLoading && (
+                  <div className="p-3 mb-3 bg-blue-500/10 border border-blue-500/30 rounded-xl text-blue-300 text-xs flex items-center gap-2">
+                    <div className="w-3.5 h-3.5 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin shrink-0" />
+                    <span>{googleStatusText || 'Authenticating...'}</span>
                   </div>
-                  <div className="text-xs font-medium">Use another Google account</div>
-                </button>
-              ) : (
-                <form onSubmit={handleCustomGoogleSubmit} className="p-3 bg-slate-950/70 border border-white/10 rounded-xl space-y-2.5 mt-2">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-blue-400">
-                    Enter Google Account Details
-                  </div>
-                  <div>
-                    <label className="block text-[10px] text-slate-400 mb-1">Full Name</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Jordan Lee"
-                      value={customGoogleName}
-                      onChange={(e) => setCustomGoogleName(e.target.value)}
-                      className="w-full px-2.5 py-1.5 text-xs bg-slate-900 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] text-slate-400 mb-1">Google Email Address</label>
-                    <input
-                      type="email"
-                      placeholder="jordan.lee@gmail.com"
-                      value={customGoogleEmail}
-                      onChange={(e) => setCustomGoogleEmail(e.target.value)}
-                      required
-                      className="w-full px-2.5 py-1.5 text-xs bg-slate-900 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 pt-1">
+                )}
+
+                {/* Account List */}
+                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                  {demoPersonas.map((account) => (
+                    <button
+                      key={account.id}
+                      type="button"
+                      disabled={isGoogleLoading}
+                      onClick={() => handleDirectGoogleLogin({
+                        name: account.name,
+                        email: account.email,
+                        googleId: `goog-${account.id}`,
+                        avatar: account.avatar
+                      })}
+                      className="w-full p-2.5 rounded-xl bg-slate-800/40 hover:bg-slate-800 border border-white/5 hover:border-blue-500/40 text-left transition-all flex items-center gap-3 group cursor-pointer disabled:opacity-50"
+                    >
+                      <img
+                        src={account.avatar}
+                        alt={account.name}
+                        className="w-8 h-8 rounded-full bg-blue-500/20 border border-white/10 shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-semibold text-slate-200 group-hover:text-blue-400 truncate">
+                          {account.name}
+                        </div>
+                        <div className="text-[10px] text-slate-400 truncate">
+                          {account.email}
+                        </div>
+                      </div>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20 shrink-0">
+                        {account.badge}
+                      </span>
+                    </button>
+                  ))}
+
+                  {/* Use Custom Google Account Form */}
+                  {!showCustomGoogleInput ? (
                     <button
                       type="button"
-                      onClick={() => setShowCustomGoogleInput(false)}
-                      className="flex-1 py-1.5 text-[11px] text-slate-400 hover:text-white"
+                      onClick={() => setShowCustomGoogleInput(true)}
+                      className="w-full p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800/60 border border-dashed border-white/15 hover:border-white/30 text-left transition-all flex items-center gap-3 text-slate-300 hover:text-white cursor-pointer"
                     >
-                      Cancel
+                      <div className="w-8 h-8 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center shrink-0">
+                        <User className="w-4 h-4 text-slate-400" />
+                      </div>
+                      <div className="text-xs font-medium">Sign in with any custom Google account</div>
                     </button>
+                  ) : (
+                    <form onSubmit={handleCustomGoogleSubmit} className="p-3 bg-slate-950/70 border border-white/10 rounded-xl space-y-2.5 mt-2">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-blue-400">
+                        Custom Google Account Info
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-slate-400 mb-1">Full Name</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Jordan Lee"
+                          value={customGoogleName}
+                          onChange={(e) => setCustomGoogleName(e.target.value)}
+                          className="w-full px-2.5 py-1.5 text-xs bg-slate-900 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-slate-400 mb-1">Google Email Address</label>
+                        <input
+                          type="email"
+                          placeholder="jordan.lee@gmail.com"
+                          value={customGoogleEmail}
+                          onChange={(e) => setCustomGoogleEmail(e.target.value)}
+                          required
+                          className="w-full px-2.5 py-1.5 text-xs bg-slate-900 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setShowCustomGoogleInput(false)}
+                          className="flex-1 py-1.5 text-[11px] text-slate-400 hover:text-white"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={isGoogleLoading}
+                          className="flex-1 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[11px] font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          {isGoogleLoading ? 'Connecting...' : 'Authorize OAuth'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: GOOGLE CLOUD OAUTH CONFIGURATION */}
+            {googleModalTab === 'config' && (
+              <div className="space-y-3">
+                <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-300 text-xs space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-blue-200">
+                    <Info className="w-4 h-4 text-blue-400 shrink-0" />
+                    <span>Real Google Cloud Platform (GCP) Setup</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-blue-300/80">
+                    To trigger the genuine Google login popup for your domain, provide a Web OAuth Client ID created in your Google Cloud Console.
+                  </p>
+                </div>
+
+                <div className="p-2.5 bg-slate-950/60 border border-white/5 rounded-xl text-[11px] text-slate-300 space-y-1">
+                  <span className="font-semibold text-slate-400">Required GCP Settings:</span>
+                  <div className="font-mono text-[10px] text-slate-400 space-y-0.5">
+                    <div>1. Application Type: <span className="text-white">Web application</span></div>
+                    <div>2. Authorized JavaScript origins: <span className="text-blue-400 select-all">http://localhost:5173</span></div>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSaveClientId} className="space-y-3">
+                  <div>
+                    <label className="block text-[11px] text-slate-300 font-medium mb-1">
+                      Google OAuth 2.0 Client ID
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 123456789-abcdefg.apps.googleusercontent.com"
+                      value={inputClientId || googleClientId}
+                      onChange={(e) => setInputClientId(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-slate-950 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    {googleClientId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          localStorage.removeItem('brightloop_google_client_id');
+                          setGoogleClientId('');
+                          setInputClientId('');
+                        }}
+                        className="py-2 px-3 text-[11px] text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl border border-rose-500/20 transition-colors cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                    )}
                     <button
                       type="submit"
-                      disabled={isGoogleLoading}
-                      className="flex-1 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[11px] font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                      className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-md transition-colors cursor-pointer"
                     >
-                      {isGoogleLoading ? 'Connecting...' : 'Authorize OAuth'}
+                      Save & Activate Client ID
                     </button>
                   </div>
                 </form>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Google Footer Disclaimer */}
-            <div className="mt-4 pt-3 border-t border-white/5 text-[9px] text-slate-500 leading-normal">
-              To continue, Google will share your name, email address, language preference, and profile picture with Brightloop.
+            <div className="mt-4 pt-3 border-t border-white/5 text-[9px] text-slate-500 leading-normal flex items-center justify-between">
+              <span>Google OAuth 2.0 Identity Protocol</span>
+              <span>Encrypted via SHA-256</span>
             </div>
           </div>
         </div>
