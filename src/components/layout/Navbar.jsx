@@ -1,14 +1,24 @@
 import React, { useState } from 'react';
-import { Search, Bell, Menu, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Search, Bell, Menu, ShieldCheck, CheckCircle2, LogOut, ChevronDown, User } from 'lucide-react';
 
-export function Navbar({ onToggleSidebar, activeTitle, globalSearch, setGlobalSearch }) {
+export function Navbar({
+  onToggleSidebar,
+  activeTitle,
+  globalSearch,
+  setGlobalSearch,
+  currentUser = { name: 'Hashim', role: 'Super Admin', email: 'hashim@brightloop.io', department: 'Engineering' },
+  onLogout,
+}) {
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const notifications = [
     { id: 1, title: 'Invoice INV-2025-1084 is overdue', time: '10m ago', unread: true },
     { id: 2, title: 'Quotation QT-2025-089 accepted by Acme Corp', time: '1h ago', unread: true },
     { id: 3, title: 'New subscription SUB-8407 created', time: '3h ago', unread: false },
   ];
+
+  const initialLetter = currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'U';
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-20">
@@ -44,7 +54,10 @@ export function Navbar({ onToggleSidebar, activeTitle, globalSearch, setGlobalSe
         {/* Notifications Dropdown */}
         <div className="relative">
           <button
-            onClick={() => setShowNotifications(!showNotifications)}
+            onClick={() => {
+              setShowNotifications(!showNotifications);
+              setShowUserMenu(false);
+            }}
             className="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
           >
             <Bell className="w-4 h-4" />
@@ -88,23 +101,71 @@ export function Navbar({ onToggleSidebar, activeTitle, globalSearch, setGlobalSe
 
         <div className="h-6 w-px bg-slate-200" />
 
-        {/* User Profile & Role Indicator */}
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="w-8 h-8 rounded-full bg-linear-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs ring-2 ring-blue-100">
-              H
+        {/* User Profile & Role Indicator with Menu */}
+        <div className="relative">
+          <button
+            onClick={() => {
+              setShowUserMenu(!showUserMenu);
+              setShowNotifications(false);
+            }}
+            className="flex items-center gap-3 p-1.5 -m-1.5 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer text-left focus:outline-none"
+          >
+            <div className="relative">
+              <div className="w-8 h-8 rounded-full bg-linear-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs ring-2 ring-blue-100 shadow-xs">
+                {initialLetter}
+              </div>
+              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
             </div>
-            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
-          </div>
-          <div className="hidden sm:block text-left">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-semibold text-slate-900">Hashim</span>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-700">
-                <ShieldCheck className="w-3 h-3 mr-0.5" /> Admin
+            <div className="hidden sm:block text-left">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-slate-900 truncate max-w-28">
+                  {currentUser?.name || 'User'}
+                </span>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-700">
+                  <ShieldCheck className="w-3 h-3 mr-0.5" />
+                  {currentUser?.role?.includes('Admin') ? 'Admin' : currentUser?.role || 'Staff'}
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-400 block truncate max-w-32">
+                {currentUser?.department || 'Operations'}
               </span>
             </div>
-            <span className="text-[10px] text-slate-400">Lead Developer</span>
-          </div>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
+          </button>
+
+          {/* User Profile Popover / Dropdown */}
+          {showUserMenu && (
+            <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="px-4 py-2 border-b border-slate-100">
+                <p className="text-xs font-semibold text-slate-900 truncate">{currentUser?.name}</p>
+                <p className="text-[11px] text-slate-400 truncate">{currentUser?.email}</p>
+              </div>
+
+              <div className="py-1">
+                <div className="px-4 py-1.5 text-[11px] text-slate-500 flex items-center justify-between">
+                  <span>Role</span>
+                  <span className="font-semibold text-slate-700">{currentUser?.role}</span>
+                </div>
+                <div className="px-4 py-1.5 text-[11px] text-slate-500 flex items-center justify-between">
+                  <span>Department</span>
+                  <span className="font-semibold text-slate-700">{currentUser?.department}</span>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-100 pt-1 mt-1">
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    if (onLogout) onLogout();
+                  }}
+                  className="w-full text-left px-4 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sign Out / Switch Account</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Layout } from './components/layout/Layout';
+import { LoginPage } from './pages/Auth/LoginPage';
 import { DashboardPage } from './pages/Dashboard/DashboardPage';
 import { CustomersPage } from './pages/Customers/CustomersPage';
 import { ProductsPage } from './pages/Products/ProductsPage';
@@ -42,6 +43,47 @@ export function App() {
   const [users, setUsers] = useState(initialUsers);
   const [companySettings, setCompanySettings] = useState(initialCompanySettings);
 
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    try {
+      return localStorage.getItem('brightloop_logged_in') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('brightloop_current_user');
+      return saved ? JSON.parse(saved) : initialUsers[0];
+    } catch {
+      return initialUsers[0];
+    }
+  });
+
+  const handleLogin = (user, isNew = false) => {
+    if (isNew) {
+      setUsers((prev) => [user, ...prev]);
+    }
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+    try {
+      localStorage.setItem('brightloop_logged_in', 'true');
+      localStorage.setItem('brightloop_current_user', JSON.stringify(user));
+    } catch (e) {
+      console.error('LocalStorage write failed:', e);
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    try {
+      localStorage.removeItem('brightloop_logged_in');
+    } catch (e) {
+      console.error('LocalStorage clear failed:', e);
+    }
+  };
+
   // State modification handlers
   const handleAddCustomer = (newCustomer) => {
     setCustomers([newCustomer, ...customers]);
@@ -75,8 +117,23 @@ export function App() {
     setCompanySettings(updated);
   };
 
+  // If not logged in, render the login page
+  if (!isAuthenticated) {
+    return (
+      <LoginPage
+        onLogin={handleLogin}
+        availableUsers={users}
+      />
+    );
+  }
+
   return (
-    <Layout activeTab={activeTab} onSelectTab={setActiveTab}>
+    <Layout
+      activeTab={activeTab}
+      onSelectTab={setActiveTab}
+      currentUser={currentUser}
+      onLogout={handleLogout}
+    >
       {activeTab === 'dashboard' && (
         <DashboardPage
           dashboardData={dashboardData}
