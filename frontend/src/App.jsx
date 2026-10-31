@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Layout } from './components/layout/Layout';
 import { LoginPage } from './pages/Auth/LoginPage';
-import { CustomerPortal } from './pages/Portal/CustomerPortal';
+import { UserPortalPage } from './pages/UserPortal/UserPortalPage';
 import { DashboardPage } from './pages/Dashboard/DashboardPage';
 import { CustomersPage } from './pages/Customers/CustomersPage';
 import { ProductsPage } from './pages/Products/ProductsPage';
@@ -66,7 +66,7 @@ export function App() {
 
   const handleLogin = (user, isNew = false) => {
     if (isNew) {
-      if (user.role === 'Customer' || user.personaType === 'customer') {
+      if (user.role === 'Customer' || user.role === 'user' || user.personaType === 'customer') {
         setCustomers((prev) => [user, ...prev]);
       } else {
         setUsers((prev) => [user, ...prev]);
@@ -90,6 +90,7 @@ export function App() {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    setCurrentUser(null);
     try {
       localStorage.setItem('brightloop_logged_in', 'false');
       localStorage.removeItem('brightloop_current_user');
@@ -109,39 +110,69 @@ export function App() {
 
   // State modification handlers
   const handleAddCustomer = (newCustomer) => {
-    setCustomers([newCustomer, ...customers]);
+    setCustomers((prev) => [newCustomer, ...prev]);
   };
 
   const handleAddProduct = (newProduct) => {
-    setProducts([newProduct, ...products]);
+    setProducts((prev) => [newProduct, ...products]);
   };
 
   const handleAddPlan = (newPlan) => {
-    setPlans([newPlan, ...plans]);
+    setPlans((prev) => [newPlan, ...plans]);
   };
 
   const handleAddQuotation = (newQuotation) => {
-    setQuotations([newQuotation, ...quotations]);
+    setQuotations((prev) => [newQuotation, ...quotations]);
   };
 
   const handleAddInvoice = (newInvoice) => {
-    setInvoices([newInvoice, ...invoices]);
+    setInvoices((prev) => [newInvoice, ...invoices]);
   };
 
   const handleAddDiscount = (newDiscount) => {
-    setDiscounts([newDiscount, ...discounts]);
+    setDiscounts((prev) => [newDiscount, ...discounts]);
   };
 
   const handleAddUser = (newUser) => {
-    setUsers([newUser, ...users]);
+    setUsers((prev) => [newUser, ...users]);
   };
 
   const handleSaveCompanySettings = (updated) => {
     setCompanySettings(updated);
   };
 
+  // State modification handlers for User Portal actions
+  const handleAddSubscription = (newSub, newInvoice, newPayment) => {
+    setSubscriptions((prev) => [newSub, ...prev]);
+    if (newInvoice) setInvoices((prev) => [newInvoice, ...prev]);
+    if (newPayment) setPayments((prev) => [newPayment, ...prev]);
+
+    // Also increment user totalSubscriptions count
+    setCustomers((prev) =>
+      prev.map((c) =>
+        c.id === newSub.customerId || c.company === newSub.customer || c.name === newSub.customer
+          ? { ...c, totalSubscriptions: (c.totalSubscriptions || 0) + 1 }
+          : c
+      )
+    );
+  };
+
+  const handleToggleAutoRenew = (subId) => {
+    setSubscriptions((prev) =>
+      prev.map((s) => (s.id === subId ? { ...s, autoRenew: !s.autoRenew } : s))
+    );
+  };
+
+  const handleCancelSubscription = (subId) => {
+    setSubscriptions((prev) =>
+      prev.map((s) =>
+        s.id === subId ? { ...s, status: 'Cancelled', autoRenew: false } : s
+      )
+    );
+  };
+
   // 1. Unauthenticated view: Render the upgraded Login & Registration Page
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !currentUser) {
     return (
       <>
         <CursorFollower enableSpotlight={true} enableCursorDot={true} />
@@ -154,17 +185,35 @@ export function App() {
     );
   }
 
-  // 2. Customer view: Customer Portal (Isolated from Admin settings/ops)
-  if (currentUser?.role === 'Customer' || currentUser?.personaType === 'customer') {
+  // 2. User view: User Portal (Dedicated self-service interface after login)
+  const isUserAccount =
+    currentUser?.role === 'Customer' ||
+    currentUser?.role === 'user' ||
+    currentUser?.role === 'customer' ||
+    currentUser?.personaType === 'customer' ||
+    currentUser?.id?.startsWith('CUST-') ||
+    currentUser?.email?.includes('@acmecorp') ||
+    currentUser?.email?.includes('@apexlogistics') ||
+    currentUser?.email?.includes('@novatech') ||
+    currentUser?.email?.includes('@solardrive');
+
+  if (isUserAccount) {
     return (
       <>
         <CursorFollower enableSpotlight={false} enableCursorDot={true} />
-        <CustomerPortal
-          customerUser={currentUser}
+        <UserPortalPage
+          products={products}
+          plans={plans}
           subscriptions={subscriptions}
           invoices={invoices}
           payments={payments}
+          discounts={discounts}
+          customers={customers}
+          currentUser={currentUser}
           onLogout={handleLogout}
+          onAddSubscription={handleAddSubscription}
+          onToggleAutoRenew={handleToggleAutoRenew}
+          onCancelSubscription={handleCancelSubscription}
         />
       </>
     );
@@ -184,94 +233,94 @@ export function App() {
         users={users}
         onSwitchUser={handleSwitchUser}
       >
-      {activeTab === 'dashboard' && (
-        <DashboardPage
-          dashboardData={dashboardData}
-          subscriptions={subscriptions}
-          invoices={invoices}
-          payments={payments}
-          onNavigate={setActiveTab}
-        />
-      )}
+        {activeTab === 'dashboard' && (
+          <DashboardPage
+            dashboardData={dashboardData}
+            subscriptions={subscriptions}
+            invoices={invoices}
+            payments={payments}
+            onNavigate={setActiveTab}
+          />
+        )}
 
-      {activeTab === 'customers' && (
-        <CustomersPage
-          customers={customers}
-          onAddCustomer={handleAddCustomer}
-        />
-      )}
+        {activeTab === 'customers' && (
+          <CustomersPage
+            customers={customers}
+            onAddCustomer={handleAddCustomer}
+          />
+        )}
 
-      {activeTab === 'products' && (
-        <ProductsPage
-          products={products}
-          onAddProduct={handleAddProduct}
-        />
-      )}
+        {activeTab === 'products' && (
+          <ProductsPage
+            products={products}
+            onAddProduct={handleAddProduct}
+          />
+        )}
 
-      {activeTab === 'plans' && (
-        <PlansPage
-          plans={plans}
-          onAddPlan={handleAddPlan}
-        />
-      )}
+        {activeTab === 'plans' && (
+          <PlansPage
+            plans={plans}
+            onAddPlan={handleAddPlan}
+          />
+        )}
 
-      {activeTab === 'quotations' && (
-        <QuotationsPage
-          quotations={quotations}
-          customers={customers}
-          onAddQuotation={handleAddQuotation}
-        />
-      )}
+        {activeTab === 'quotations' && (
+          <QuotationsPage
+            quotations={quotations}
+            customers={customers}
+            onAddQuotation={handleAddQuotation}
+          />
+        )}
 
-      {activeTab === 'subscriptions' && (
-        <SubscriptionsPage
-          subscriptions={subscriptions}
-        />
-      )}
+        {activeTab === 'subscriptions' && (
+          <SubscriptionsPage
+            subscriptions={subscriptions}
+          />
+        )}
 
-      {activeTab === 'invoices' && (
-        <InvoicesPage
-          invoices={invoices}
-          customers={customers}
-          products={products}
-          plans={plans}
-          discounts={discounts}
-          companySettings={companySettings}
-          onAddInvoice={handleAddInvoice}
-        />
-      )}
+        {activeTab === 'invoices' && (
+          <InvoicesPage
+            invoices={invoices}
+            customers={customers}
+            products={products}
+            plans={plans}
+            discounts={discounts}
+            companySettings={companySettings}
+            onAddInvoice={handleAddInvoice}
+          />
+        )}
 
-      {activeTab === 'payments' && (
-        <PaymentsPage
-          payments={payments}
-        />
-      )}
+        {activeTab === 'payments' && (
+          <PaymentsPage
+            payments={payments}
+          />
+        )}
 
-      {activeTab === 'discounts' && (
-        <DiscountsPage
-          discounts={discounts}
-          onAddDiscount={handleAddDiscount}
-        />
-      )}
+        {activeTab === 'discounts' && (
+          <DiscountsPage
+            discounts={discounts}
+            onAddDiscount={handleAddDiscount}
+          />
+        )}
 
-      {activeTab === 'reports' && (
-        <ReportsPage
-          invoices={invoices}
-          subscriptions={subscriptions}
-          payments={payments}
-        />
-      )}
+        {activeTab === 'reports' && (
+          <ReportsPage
+            invoices={invoices}
+            subscriptions={subscriptions}
+            payments={payments}
+          />
+        )}
 
-      {activeTab === 'settings' && (
-        <SettingsPage
-          companySettings={companySettings}
-          users={users}
-          isAdmin={isAdmin}
-          onSaveCompanySettings={handleSaveCompanySettings}
-          onAddUser={handleAddUser}
-        />
-      )}
-    </Layout>
+        {activeTab === 'settings' && (
+          <SettingsPage
+            companySettings={companySettings}
+            users={users}
+            isAdmin={isAdmin}
+            onSaveCompanySettings={handleSaveCompanySettings}
+            onAddUser={handleAddUser}
+          />
+        )}
+      </Layout>
     </>
   );
 }
