@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Zap,
   Mail,
@@ -129,40 +129,44 @@ export function LoginPage({
   const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password);
   const isPasswordStrong = hasMinLength && hasUpperCase && hasLowerCase && hasSpecialChar;
 
-  // Preset demo personas
+  // Preset demo personas: Includes User (Client) and Admin/Staff accounts
   const demoPersonas = [
     {
+      id: 'CUST-001',
+      name: 'Sarah (User)',
+      email: 'sarah.jenkins@acmecorp.com',
+      role: 'User',
+      userType: 'customer',
+      department: 'Procurement',
+      organization: 'Acme Corporation',
+      company: 'Acme Corporation',
+      badge: 'User',
+      badgeColor: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarahj',
+    },
+    {
       id: 'USR-01',
-      name: 'Hashim (Lead)',
+      name: 'Hashim (Admin)',
       email: 'hashim@brightloop.io',
       role: 'Super Admin',
+      userType: 'admin',
       department: 'Engineering',
       organization: 'Brightloop Technologies Inc.',
-      badge: 'Admin (Full)',
+      badge: 'Admin',
       badgeColor: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
       avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=hashim',
     },
     {
       id: 'USR-02',
-      name: 'Sarah Connor',
+      name: 'Sarah C. (Staff)',
       email: 'sarah.c@brightloop.io',
       role: 'Billing Manager',
+      userType: 'staff',
       department: 'Finance',
       organization: 'Brightloop Technologies Inc.',
-      badge: 'User (Blank)',
+      badge: 'Staff',
       badgeColor: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
       avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarah',
-    },
-    {
-      id: 'USR-03',
-      name: 'Liam Vance',
-      email: 'liam.v@brightloop.io',
-      role: 'Sales Representative',
-      department: 'Sales',
-      organization: 'Brightloop Technologies Inc.',
-      badge: 'User (Blank)',
-      badgeColor: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=liam',
     },
   ];
 

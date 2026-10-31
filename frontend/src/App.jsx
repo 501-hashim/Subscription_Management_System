@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Layout } from './components/layout/Layout';
 import { LoginPage } from './pages/Auth/LoginPage';
 import { UserPortalPage } from './pages/UserPortal/UserPortalPage';
@@ -187,22 +187,40 @@ export function App() {
     );
   }
 
-  // 2. Determine if the current user has Administrative privileges
-  const isAdmin = Boolean(
-    currentUser && (
-      currentUser.role === 'Super Admin' ||
-      currentUser.role === 'admin' ||
-      currentUser.userType === 'admin' ||
-      currentUser.user_type === 'admin' ||
-      (currentUser.role && currentUser.role.toLowerCase() === 'admin') ||
-      (currentUser.role && currentUser.role.toLowerCase() === 'super admin') ||
-      (currentUser.roleTitle && currentUser.roleTitle.toLowerCase().includes('admin')) ||
-      currentUser.email?.toLowerCase() === 'hashim@brightloop.io'
-    )
-  );
+  // 2. Identify Admin / Staff accounts
+  // All internal admin/staff accounts MUST ALWAYS see the Admin Operations Console
+  const isAdminAccount =
+    currentUser?.role === 'Super Admin' ||
+    currentUser?.role === 'Billing Manager' ||
+    currentUser?.role === 'Sales Representative' ||
+    currentUser?.role === 'Admin' ||
+    currentUser?.role === 'admin' ||
+    currentUser?.role === 'Staff' ||
+    currentUser?.role === 'staff' ||
+    currentUser?.role === 'Owner' ||
+    currentUser?.role === 'owner' ||
+    currentUser?.userType === 'admin' ||
+    currentUser?.userType === 'staff' ||
+    currentUser?.userType === 'organization' ||
+    currentUser?.email?.toLowerCase()?.endsWith('@brightloop.io') ||
+    currentUser?.id?.startsWith('USR-');
 
-  // 3. User view: Dedicated User Interface (Products, Plans, Subscriptions, Payments & PDF Invoices)
-  if (!isAdmin) {
+  // 3. User view: User Portal ONLY comes after logging in on a User (Client), NOT Admin
+  const isUserAccount =
+    !isAdminAccount &&
+    (currentUser?.role === 'User' ||
+      currentUser?.role === 'user' ||
+      currentUser?.role === 'Customer' ||
+      currentUser?.role === 'customer' ||
+      currentUser?.role === 'Client' ||
+      currentUser?.role === 'client' ||
+      currentUser?.userType === 'customer' ||
+      currentUser?.userType === 'user' ||
+      currentUser?.personaType === 'customer' ||
+      currentUser?.id?.startsWith('CUST-') ||
+      Boolean(currentUser?.company));
+
+  if (isUserAccount) {
     return (
       <>
         <CursorFollower enableSpotlight={false} enableCursorDot={true} />
