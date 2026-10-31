@@ -24,7 +24,7 @@ import { Modal } from '../../components/common/Modal';
 import { formatCurrency } from '../../utils/formatters';
 
 export function ProductsPage({ products = [], onAddProduct }) {
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' (Netflix boxes) | 'table'
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [subscribedIds, setSubscribedIds] = useState([]);
@@ -41,7 +41,7 @@ export function ProductsPage({ products = [], onAddProduct }) {
     description: '',
     image: '',
     badge: 'New Release',
-    rating: '98% Match',
+    
   });
   const [errors, setErrors] = useState({});
 
@@ -77,7 +77,7 @@ export function ProductsPage({ products = [], onAddProduct }) {
       status: formData.status,
       description: formData.description || 'Enterprise grade scalable subscription service module.',
       image: formData.image || 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=900&q=80',
-      rating: formData.rating || '97% Match',
+      
       badge: formData.badge || 'New',
       category: formData.type,
       duration: 'Auto-Renew / mo',
@@ -96,7 +96,7 @@ export function ProductsPage({ products = [], onAddProduct }) {
       description: '',
       image: '',
       badge: 'New Release',
-      rating: '98% Match',
+      
     });
     setErrors({});
   };
@@ -170,12 +170,12 @@ export function ProductsPage({ products = [], onAddProduct }) {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">Product Catalog</h1>
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-red-600 text-white shadow-xs">
-              Netflix View
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-600 text-white shadow-xs">
+              Catalog Grid
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Cinematic box view showcasing software modules, billing frequencies, and pricing.
+            Interactive product catalog showcasing software modules, billing frequencies, and pricing.
           </p>
         </div>
 
@@ -191,7 +191,7 @@ export function ProductsPage({ products = [], onAddProduct }) {
               }`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
-              <span>Netflix Boxes</span>
+              <span>Grid View</span>
             </button>
             <button
               onClick={() => setViewMode('table')}
@@ -212,7 +212,7 @@ export function ProductsPage({ products = [], onAddProduct }) {
         </div>
       </div>
 
-      {/* NETFLIX CINEMATIC BOX GRID VIEW */}
+      {/* PRODUCT GRID VIEW */}
       {viewMode === 'grid' ? (
         <div className="space-y-4">
           <div className="flex items-center justify-between text-xs text-slate-500 px-1">
@@ -241,32 +241,32 @@ export function ProductsPage({ products = [], onAddProduct }) {
                       alt={prod.name}
                       className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 opacity-75 group-hover:opacity-60"
                     />
-                    {/* Dark Cinema Gradients */}
+                    {/* Ambient Gradients */}
                     <div className="absolute inset-0 bg-linear-to-t from-slate-950 via-slate-950/70 to-slate-950/20" />
                   </div>
 
                   {/* TOP HEADER ON THE BOX */}
                   <div className="relative z-10 p-5 flex items-start justify-between">
                     <div className="flex items-center gap-2">
-                      {/* Netflix-style Red Brand Logo Marker */}
-                      <span className="w-6 h-6 rounded bg-red-600 text-white font-black text-xs flex items-center justify-center tracking-tighter shadow-md shadow-red-600/50">
+                      {/* Product Brand Logo Marker */}
+                      <span className="w-6 h-6 rounded-md bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
                         B
                       </span>
                       {prod.badge && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-600/90 text-white shadow-xs backdrop-blur-xs">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white shadow-xs backdrop-blur-xs">
                           {prod.badge}
                         </span>
                       )}
                     </div>
 
-                    {/* TOP RIGHT CORNER: Match Rating */}
+                    {/* Status Badge */}
                     <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-900/80 text-emerald-400 border border-emerald-500/30 backdrop-blur-md">
                       <Sparkles className="w-3 h-3 text-emerald-400" />
-                      <span>{prod.rating || '98% Match'}</span>
+                      <span>Active SaaS</span>
                     </div>
                   </div>
 
-                  {/* UNIQUE PRICE BADGE (Floating neon cinema ticket) */}
+                  {/* PRICING BADGE */}
                   <div className="relative z-10 px-5 my-auto">
                     <div className="inline-block bg-slate-900/90 border border-blue-500/40 rounded-xl p-3 shadow-lg backdrop-blur-md">
                       <div className="flex items-baseline gap-1">
@@ -321,15 +321,15 @@ export function ProductsPage({ products = [], onAddProduct }) {
                     {/* Metadata Tags: Ultra SLA, Variants */}
                     <div className="flex items-center gap-2 text-[10px] text-slate-400">
                       <span className="border border-slate-700 px-1.5 py-0.5 rounded text-slate-300 font-semibold">
-                        SaaS-18+
+                        Cloud SaaS
                       </span>
                       <span className="border border-slate-700 px-1.5 py-0.5 rounded text-slate-300 font-semibold">
-                        4K SLA
+                        99.9% SLA
                       </span>
                       <span className="text-blue-400 font-medium">{prod.code}</span>
                     </div>
 
-                    {/* Netflix Action Buttons */}
+                    {/* Action Buttons */}
                     <div className="flex items-center gap-2 pt-1">
                       <button
                         onClick={(e) => toggleSubscribe(prod.id, e)}
@@ -346,7 +346,7 @@ export function ProductsPage({ products = [], onAddProduct }) {
                           </>
                         ) : (
                           <>
-                            <Play className="w-3.5 h-3.5 fill-current" />
+                            <Zap className="w-3.5 h-3.5" />
                             <span>Subscribe</span>
                           </>
                         )}
@@ -381,7 +381,7 @@ export function ProductsPage({ products = [], onAddProduct }) {
         />
       )}
 
-      {/* NETFLIX-STYLE PRODUCT DETAIL MODAL */}
+      {/* PRODUCT DETAIL MODAL */}
       {selectedProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl text-white relative">
@@ -393,7 +393,7 @@ export function ProductsPage({ products = [], onAddProduct }) {
               <X className="w-4 h-4" />
             </button>
 
-            {/* Modal Cinematic Banner */}
+            {/* Product Modal Header Banner */}
             <div className="relative h-56 w-full">
               <img
                 src={
@@ -405,8 +405,8 @@ export function ProductsPage({ products = [], onAddProduct }) {
               />
               <div className="absolute inset-0 bg-linear-to-t from-slate-900 via-slate-900/40 to-transparent" />
               <div className="absolute bottom-4 left-6 right-6">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-600 text-white uppercase tracking-wider">
-                  {selectedProduct.badge || 'Netflix SaaS Featured'}
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-600 text-white uppercase tracking-wider">
+                  {selectedProduct.badge || 'Enterprise SaaS'}
                 </span>
                 <h2 className="text-2xl font-black text-white mt-1">{selectedProduct.name}</h2>
               </div>
@@ -416,8 +416,8 @@ export function ProductsPage({ products = [], onAddProduct }) {
             <div className="p-6 space-y-4 text-xs">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-emerald-400 font-bold">{selectedProduct.rating || '98% Match'}</span>
-                  <span className="border border-slate-700 px-1.5 py-0.5 rounded text-slate-400">SaaS-18+</span>
+                  <span className="text-emerald-400 font-bold">{selectedProduct.status || 'Active Service'}</span>
+                  <span className="border border-slate-700 px-1.5 py-0.5 rounded text-slate-400">Cloud SaaS</span>
                   <span className="text-slate-400">{selectedProduct.type}</span>
                 </div>
                 <div className="text-right">
@@ -488,9 +488,9 @@ export function ProductsPage({ products = [], onAddProduct }) {
                     toggleSubscribe(selectedProduct.id);
                     setSelectedProduct(null);
                   }}
-                  className="flex-1 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-colors shadow-lg shadow-red-600/30"
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors shadow-md shadow-blue-600/30"
                 >
-                  <Play className="w-4 h-4 fill-current" />
+                  <Zap className="w-4 h-4" />
                   <span>
                     {subscribedIds.includes(selectedProduct.id) ? 'Active Subscription' : 'Subscribe Now'}
                   </span>
@@ -512,7 +512,7 @@ export function ProductsPage({ products = [], onAddProduct }) {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         title="Add New Catalog Product"
-        description="Add a service or software module with Netflix-style box art."
+        description="Add a service or software module to the product catalog."
       >
         <form onSubmit={handleAddSubmit} className="space-y-4 text-xs">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -586,7 +586,7 @@ export function ProductsPage({ products = [], onAddProduct }) {
           </div>
 
           <div>
-            <label className="block font-medium text-slate-700 mb-1">Cover Image URL (Box Art)</label>
+            <label className="block font-medium text-slate-700 mb-1">Cover Image URL</label>
             <input
               type="text"
               placeholder="https://images.unsplash.com/..."

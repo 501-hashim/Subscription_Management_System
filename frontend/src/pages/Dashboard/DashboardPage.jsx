@@ -258,7 +258,7 @@ export function DashboardPage({
           </div>
         </div>
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-slate-400 text-[11px]">Active Persona:</span>
+          <span className="text-slate-400 text-[11px]">Active Role:</span>
           <span className="font-bold text-blue-400 bg-slate-800/90 px-2.5 py-1 rounded-lg border border-slate-700 text-[11px]">
             {currentUser?.role?.includes('Admin') ? '🛡️ Admin Role' : '🏢 Organization'}
           </span>

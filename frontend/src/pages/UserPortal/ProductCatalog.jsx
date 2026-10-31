@@ -8,7 +8,7 @@ import { ProductDetailModal } from './ProductDetailModal';
 import { userApi } from '../../services/userApi';
 import { formatCurrency } from '../../utils/formatters';
 
-// The 3 official catalog products matching the Admin Netflix View
+// The 3 official catalog products
 const OFFICIAL_THREE_PRODUCTS = [
   {
     id: 'PROD-001',
@@ -21,7 +21,7 @@ const OFFICIAL_THREE_PRODUCTS = [
     startingPrice: 199.00,
     status: 'Available',
     badge: 'Top Rated CRM',
-    rating: '98% Match',
+    
     description: 'Comprehensive Customer Relationship Management (CRM) platform with visual sales pipelines, lead nurturing, customer tracking, and team collaboration.',
     image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=900&q=80',
     imageUrl: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=900&q=80',
@@ -32,7 +32,7 @@ const OFFICIAL_THREE_PRODUCTS = [
       'Email & Calendar Integration',
       'Deal Forecast Analytics'
     ],
-    tags: ['SaaS', '4K SLA', 'BL-CRM'],
+    tags: ['SaaS', '99.9% SLA', 'BL-CRM'],
     availablePlans: ['Starter Plan ($49/mo)', 'Professional CRM ($199/mo)', 'Enterprise Scale ($499/mo)'],
     plansCount: 3,
     plans: [
@@ -73,7 +73,7 @@ const OFFICIAL_THREE_PRODUCTS = [
     startingPrice: 149.00,
     status: 'Available',
     badge: 'Tax & Invoicing',
-    rating: '97% Match',
+    
     description: 'Automated corporate accounting, statutory VAT/tax compliance, automated expense tracking, balance sheets, and real-time P&L reporting.',
     image: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=900&q=80',
     imageUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=900&q=80',
@@ -125,7 +125,7 @@ const OFFICIAL_THREE_PRODUCTS = [
     startingPrice: 79.00,
     status: 'Available',
     badge: 'Encrypted NVMe',
-    rating: '99% Match',
+    
     description: 'Ultra-secure encrypted cloud storage with automated backup snapshots, geo-redundant distribution, instant file sync, and 99.999% durability.',
     image: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=900&q=80',
     imageUrl: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=900&q=80',
@@ -206,7 +206,7 @@ export function ProductCatalog({
             ...item,
             image: item.imageUrl || item.image || match?.image,
             badge: item.badge || match?.badge || 'SaaS Solution',
-            rating: item.rating || match?.rating || '98% Match',
+            status: item.status || 'Active',
             costPrice: item.costPrice || match?.costPrice || Math.round(item.salesPrice * 0.25),
             features: item.features && item.features.length > 0 ? item.features : (match?.features || []),
             tags: match?.tags || ['SaaS', item.code],
@@ -368,33 +368,12 @@ export function ProductCatalog({
                       alt={prod.name}
                       className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 opacity-70 group-hover:opacity-55"
                     />
-                    {/* Dark Cinema Gradients */}
+                    {/* Ambient Gradients */}
                     <div className="absolute inset-0 bg-linear-to-t from-slate-950 via-slate-950/75 to-slate-950/25" />
                   </div>
 
-                  {/* TOP HEADER ON THE BOX */}
-                  <div className="relative z-10 p-5 flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      {/* Netflix-style Red Brand Logo Marker */}
-                      <span className="w-6 h-6 rounded bg-red-600 text-white font-black text-xs flex items-center justify-center tracking-tighter shadow-md shadow-red-600/50">
-                        B
-                      </span>
-                      {prod.badge && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-600/90 text-white shadow-xs backdrop-blur-xs">
-                          {prod.badge}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Match Rating (Netflix style) */}
-                    <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-900/80 text-emerald-400 border border-emerald-500/30 backdrop-blur-md">
-                      <Sparkles className="w-3 h-3 text-emerald-400" />
-                      <span>{prod.rating || '98% Match'}</span>
-                    </div>
-                  </div>
-
-                  {/* UNIQUE PRICE BADGE (Floating neon cinema ticket) */}
-                  <div className="relative z-10 px-5 my-auto">
+                  {/* PRICE BADGE */}
+                  <div className="relative z-10 p-5">
                     <div className="inline-block bg-slate-900/90 border border-blue-500/40 rounded-xl p-3 shadow-lg backdrop-blur-md">
                       <div className="flex items-baseline gap-1">
                         <span className="text-2xl font-black text-white tracking-tight">
@@ -458,7 +437,7 @@ export function ProductCatalog({
                         onClick={() => onSelectProduct && onSelectProduct(prod)}
                         className="flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-md bg-white hover:bg-slate-200 text-slate-950 cursor-pointer"
                       >
-                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <Zap className="w-3.5 h-3.5" />
                         <span>Subscribe</span>
                       </button>
 

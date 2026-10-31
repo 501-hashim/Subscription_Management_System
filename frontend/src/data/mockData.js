@@ -65,7 +65,7 @@ export const initialProducts = [
     status: 'Available',
     description: 'Comprehensive Customer Relationship Management (CRM) platform with visual sales pipelines, lead nurturing, customer tracking, and team collaboration.',
     image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=900&q=80',
-    rating: '98% Match',
+    
     badge: 'Top Rated CRM',
     category: 'CRM Software',
     duration: 'Monthly / Annual',
@@ -87,7 +87,7 @@ export const initialProducts = [
     status: 'Available',
     description: 'Automated corporate accounting, statutory VAT/tax compliance, automated expense tracking, balance sheets, and real-time P&L reporting.',
     image: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=900&q=80',
-    rating: '97% Match',
+    
     badge: 'Tax & Invoicing',
     category: 'Accounting Software',
     duration: 'Billed Monthly',
@@ -109,7 +109,7 @@ export const initialProducts = [
     status: 'Available',
     description: 'Ultra-secure encrypted cloud storage with automated backup snapshots, geo-redundant distribution, instant file sync, and 99.999% durability.',
     image: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=900&q=80',
-    rating: '99% Match',
+    
     badge: 'Encrypted NVMe',
     category: 'Cloud Storage',
     duration: 'Unlimited Bandwidth',

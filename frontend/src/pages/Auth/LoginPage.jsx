@@ -296,9 +296,9 @@ export function LoginPage({
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                  1-Click Demo Personas
+                  Quick Sign-In Accounts
                 </span>
-                <span className="text-[10px] text-blue-400 font-medium">Quick switch</span>
+                <span className="text-[10px] text-blue-400 font-medium">Predefined Roles</span>
               </div>
               <div className="grid grid-cols-3 gap-1.5">
                 {demoPersonas.map((p) => (

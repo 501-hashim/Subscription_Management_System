@@ -103,7 +103,7 @@ export function UserPortalPage({
               Brightloop User Portal & Subscription Hub
             </span>
             <span className="text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2 py-0.5 rounded font-mono">
-              Live PostgreSQL Connected
+              Active Service Workspace
             </span>
           </div>
 

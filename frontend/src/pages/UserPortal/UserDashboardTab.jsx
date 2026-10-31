@@ -182,7 +182,7 @@ export function UserDashboardTab({
             {metrics.expiringSoonCount}
           </p>
           <span className="text-[11px] text-amber-600 font-medium mt-1 block">
-            {metrics.expiringSoonCount > 0 ? 'Renewal recommended' : 'None expiring within 14 days'}
+            {metrics.expiringSoonCount > 0 ? 'Renewal due soon' : 'None expiring within 14 days'}
           </span>
         </div>
 
