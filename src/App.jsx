@@ -49,10 +49,21 @@ export function App() {
   const [companySettings, setCompanySettings] = useState(initialCompanySettings);
 
   // Authentication handlers
-  const handleLogin = (user, role) => {
+  const handleLogin = (user, explicitRole) => {
     setCurrentUser(user);
-    setUserRole(role);
-    setViewMode(role);
+    const isCustomer =
+      explicitRole === 'customer' ||
+      user?.role === 'customer' ||
+      user?.userType === 'customer' ||
+      user?.id?.startsWith('CUST-') ||
+      user?.email?.includes('@acmecorp') ||
+      user?.email?.includes('@apexlogistics') ||
+      user?.email?.includes('@novatech') ||
+      user?.email?.includes('@solardrive');
+
+    const determinedRole = isCustomer ? 'customer' : 'admin';
+    setUserRole(determinedRole);
+    setViewMode(determinedRole);
   };
 
   const handleLogout = () => {
