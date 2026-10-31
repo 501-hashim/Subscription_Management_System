@@ -50,6 +50,10 @@ export function isAuthorizedForDashboard(user) {
   return false;
 }
 
+export function isAdminOrOrganization(user) {
+  return isAuthorizedForDashboard(user);
+}
+
 export function getAccessBadgeLabel(user, companySettings = {}) {
   if (!user) return 'Guest';
 
@@ -66,3 +70,4 @@ export function getAccessBadgeLabel(user, companySettings = {}) {
   }
   return user.role || 'Authorized Member';
 }
+
