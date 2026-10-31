@@ -1,54 +1,74 @@
 version: '3.8'
 
 services:
-  # Frontend Client
+  # Primary Relational PostgreSQL Database for Brightloop Subscription System
+  postgres:
+    image: postgres:16-alpine
+    container_name: brightloop_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: brightloop_subscription_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d brightloop_subscription_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend API Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: brightloop_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=development
+      - DEBUG=true
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgrespassword@postgres:5432/brightloop_subscription_db
+      - SECRET_KEY=brightloop-dev-secret-key-32chars-min
+      - FRONTEND_URL=http://localhost:5173
+      - ODOO_URL=http://odoo:8069
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Frontend Client (React + Vite)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    container_name: brightloop_frontend
+    restart: unless-stopped
     ports:
-      - "5173:5173"
+      - "5173:80"
     environment:
       - VITE_API_URL=http://localhost:8000/api/v1
     depends_on:
       - backend
 
-  # FastAPI Backend API
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
-    environment:
-      - ODOO_URL=http://odoo:8069
-      - ODOO_DB=brightloop_db
-      - ODOO_USERNAME=admin
-      - ODOO_PASSWORD=admin
-    depends_on:
-      - odoo
-
-  # Odoo ERP Service (Make-A-Ton Hackathon Environment)
+  # Optional Odoo ERP Container (for Hackathon XML-RPC testing)
   odoo:
     image: odoo:17.0
+    container_name: brightloop_odoo
+    restart: unless-stopped
     ports:
       - "8069:8069"
     environment:
-      - HOST=db
-      - USER=odoo
-      - PASSWORD=odoo
+      - HOST=postgres
+      - USER=postgres
+      - PASSWORD=postgrespassword
     depends_on:
-      - db
-
-  # PostgreSQL Database for Odoo
-  db:
-    image: postgres:15
-    environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_PASSWORD=odoo
-      - POSTGRES_USER=odoo
-    volumes:
-      - odoo-db-data:/var/lib/postgresql/data
+      postgres:
+        condition: service_healthy
 
 volumes:
-  odoo-db-data:
+  postgres_data:
+    name: brightloop_postgres_data
