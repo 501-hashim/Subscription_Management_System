@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Layout } from './components/layout/Layout';
+import { LoginPage } from './pages/Auth/LoginPage';
 import { DashboardPage } from './pages/Dashboard/DashboardPage';
 import { CustomersPage } from './pages/Customers/CustomersPage';
 import { ProductsPage } from './pages/Products/ProductsPage';
@@ -29,6 +30,16 @@ import {
 export function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
 
+  // Authentication State
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('brightloop_admin_session');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
   // Application state
   const [dashboardData] = useState(initialDashboardData);
   const [customers, setCustomers] = useState(initialCustomers);
@@ -41,6 +52,20 @@ export function App() {
   const [discounts, setDiscounts] = useState(initialDiscounts);
   const [users, setUsers] = useState(initialUsers);
   const [companySettings, setCompanySettings] = useState(initialCompanySettings);
+
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem('brightloop_admin_session');
+    } catch {}
+    setCurrentUser(null);
+  };
+
+  const handleSwitchUser = (newUser) => {
+    try {
+      localStorage.setItem('brightloop_admin_session', JSON.stringify(newUser));
+    } catch {}
+    setCurrentUser(newUser);
+  };
 
   // State modification handlers
   const handleAddCustomer = (newCustomer) => {
@@ -75,8 +100,19 @@ export function App() {
     setCompanySettings(updated);
   };
 
+  if (!currentUser) {
+    return <LoginPage onLogin={setCurrentUser} users={users} />;
+  }
+
   return (
-    <Layout activeTab={activeTab} onSelectTab={setActiveTab}>
+    <Layout
+      activeTab={activeTab}
+      onSelectTab={setActiveTab}
+      currentUser={currentUser}
+      onLogout={handleLogout}
+      users={users}
+      onSwitchUser={handleSwitchUser}
+    >
       {activeTab === 'dashboard' && (
         <DashboardPage
           dashboardData={dashboardData}

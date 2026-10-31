@@ -2,7 +2,15 @@ import React, { useState } from 'react';
 import { Sidebar, navItems } from './Sidebar';
 import { Navbar } from './Navbar';
 
-export function Layout({ activeTab, onSelectTab, children }) {
+export function Layout({
+  activeTab,
+  onSelectTab,
+  children,
+  currentUser,
+  onLogout,
+  users,
+  onSwitchUser,
+}) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
 
@@ -22,6 +30,11 @@ export function Layout({ activeTab, onSelectTab, children }) {
           onToggleSidebar={() => setIsCollapsed(!isCollapsed)}
           globalSearch={globalSearch}
           setGlobalSearch={setGlobalSearch}
+          currentUser={currentUser}
+          onLogout={onLogout}
+          onSelectTab={onSelectTab}
+          users={users}
+          onSwitchUser={onSwitchUser}
         />
 
         <main className="flex-1 p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
