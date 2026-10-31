@@ -84,9 +84,9 @@ export function DashboardPage({
     {
       id: 'box-core',
       rank: '#1 Best Seller',
-      name: 'Brightloop Core Suite',
-      code: 'BL-CORE',
-      category: 'SaaS Platform',
+      name: 'CRM Software',
+      code: 'BL-CRM',
+      category: 'Customer CRM Suite',
       shareNum: 65,
       share: '65%',
       sales: 18492,
@@ -97,14 +97,14 @@ export function DashboardPage({
       borderColor: 'border-blue-500',
       badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
       status: 'Top Revenue Generator',
-      metricPill: 'Core Anchor',
+      metricPill: 'Core CRM',
     },
     {
       id: 'box-anly',
       rank: '#2 High Velocity',
-      name: 'Advanced Analytics',
-      code: 'BL-ANLY',
-      category: 'Intelligence Addon',
+      name: 'Accounting Software',
+      code: 'BL-ACCT',
+      category: 'Financial Ledger',
       shareNum: 20,
       share: '20%',
       sales: 5690,
@@ -120,9 +120,9 @@ export function DashboardPage({
     {
       id: 'box-gate',
       rank: '#3 Retention',
-      name: 'API Gateway & Hooks',
-      code: 'BL-GATE',
-      category: 'VPC Infrastructure',
+      name: 'Cloud Storage',
+      code: 'BL-STOR',
+      category: 'Encrypted Cloud VPC',
       shareNum: 15,
       share: '15%',
       sales: 4268,
@@ -133,7 +133,7 @@ export function DashboardPage({
       borderColor: 'border-cyan-500',
       badgeColor: 'bg-cyan-50 text-cyan-700 border-cyan-200',
       status: '99.9% Retention SLA',
-      metricPill: 'Enterprise Dev',
+      metricPill: 'Cloud Storage',
     },
   ];
 
@@ -431,7 +431,7 @@ export function DashboardPage({
               <div className="flex items-center gap-2">
                 <Flame className="w-4 h-4 text-blue-600 shrink-0" />
                 <span>
-                  <strong>Brightloop Core Suite</strong> anchors <strong>65% of sales</strong>, while Analytics drives <strong>+24.8% growth</strong>.
+                  <strong>CRM Software</strong> anchors <strong>65% of sales</strong>, while Accounting Software drives <strong>+24.8% growth</strong>.
                 </span>
               </div>
               <span className="text-[10px] font-bold text-blue-700 bg-white px-2 py-0.5 rounded shadow-2xs">
