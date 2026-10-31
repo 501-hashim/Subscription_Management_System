@@ -2,8 +2,8 @@ import { db } from '../db/db.js';
 
 export async function requireCustomerAuth(req, res, next) {
   try {
-    // Look for customer identification from x-customer-id header or Authorization header
-    let customerId = req.headers['x-customer-id'];
+    // Look for customer/user identification from headers
+    let customerId = req.headers['x-user-id'] || req.headers['x-customer-id'];
 
     if (!customerId && req.headers.authorization) {
       const authHeader = req.headers.authorization;

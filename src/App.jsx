@@ -11,7 +11,7 @@ import { PaymentsPage } from './pages/Payments/PaymentsPage';
 import { DiscountsPage } from './pages/Discounts/DiscountsPage';
 import { ReportsPage } from './pages/Reports/ReportsPage';
 import { SettingsPage } from './pages/Settings/SettingsPage';
-import { CustomerPortalPage } from './pages/CustomerPortal/CustomerPortalPage';
+import { UserPortalPage } from './pages/UserPortal/UserPortalPage';
 import { LoginPage } from './pages/Auth/LoginPage';
 
 import {
@@ -31,8 +31,8 @@ import {
 export function App() {
   // Authentication & Session state
   const [currentUser, setCurrentUser] = useState(null); // null = show LoginPage
-  const [userRole, setUserRole] = useState('customer'); // 'customer' or 'admin'
-  const [viewMode, setViewMode] = useState('customer'); // 'customer' or 'admin'
+  const [userRole, setUserRole] = useState('user'); // 'user' or 'admin'
+  const [viewMode, setViewMode] = useState('user'); // 'user' or 'admin'
   const [activeTab, setActiveTab] = useState('dashboard');
 
   // Application state
@@ -51,25 +51,20 @@ export function App() {
   // Authentication handlers
   const handleLogin = (user, explicitRole) => {
     setCurrentUser(user);
-    const isCustomer =
-      explicitRole === 'customer' ||
-      user?.role === 'customer' ||
-      user?.userType === 'customer' ||
-      user?.id?.startsWith('CUST-') ||
-      user?.email?.includes('@acmecorp') ||
-      user?.email?.includes('@apexlogistics') ||
-      user?.email?.includes('@novatech') ||
-      user?.email?.includes('@solardrive');
+    const isAdmin =
+      explicitRole === 'admin' ||
+      user?.role?.toLowerCase()?.includes('admin') ||
+      user?.email?.toLowerCase() === 'hashim@brightloop.io';
 
-    const determinedRole = isCustomer ? 'customer' : 'admin';
+    const determinedRole = isAdmin ? 'admin' : 'user';
     setUserRole(determinedRole);
     setViewMode(determinedRole);
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
-    setUserRole('customer');
-    setViewMode('customer');
+    setUserRole('user');
+    setViewMode('user');
   };
 
   // State modification handlers for Admin
@@ -231,10 +226,10 @@ export function App() {
     );
   }
 
-  // 2. If in Customer Portal mode:
-  if (viewMode === 'customer') {
+  // 2. If in User Portal mode (post-login user interface):
+  if (viewMode === 'user') {
     return (
-      <CustomerPortalPage
+      <UserPortalPage
         products={products}
         plans={plans}
         subscriptions={subscriptions}
@@ -242,15 +237,12 @@ export function App() {
         payments={payments}
         discounts={discounts}
         customers={customers}
-        quotations={quotations}
         currentUser={currentUser}
         onLogout={handleLogout}
         onSwitchToAdmin={userRole === 'admin' ? () => setViewMode('admin') : undefined}
         onAddSubscription={handleAddSubscription}
         onToggleAutoRenew={handleToggleAutoRenew}
         onCancelSubscription={handleCancelSubscription}
-        onPayInvoice={handlePayInvoice}
-        onAcceptQuotation={handleAcceptQuotation}
       />
     );
   }
@@ -260,7 +252,6 @@ export function App() {
     <Layout
       activeTab={activeTab}
       onSelectTab={setActiveTab}
-      onSwitchToCustomer={() => setViewMode('customer')}
       currentUser={currentUser}
       onLogout={handleLogout}
     >

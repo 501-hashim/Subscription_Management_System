@@ -12,8 +12,6 @@ import {
   BarChart3,
   Settings,
   Zap,
-  ShoppingBag,
-  ExternalLink,
 } from 'lucide-react';
 
 export const navItems = [
@@ -30,7 +28,7 @@ export const navItems = [
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
-export function Sidebar({ activeTab, onSelectTab, isCollapsed, onSwitchToCustomer }) {
+export function Sidebar({ activeTab, onSelectTab, isCollapsed }) {
   return (
     <aside className={`bg-white border-r border-slate-200 transition-all duration-300 flex flex-col shrink-0 ${isCollapsed ? 'w-18' : 'w-64'} h-screen sticky top-0 z-30`}>
       {/* Brand Header */}
@@ -78,25 +76,6 @@ export function Sidebar({ activeTab, onSelectTab, isCollapsed, onSwitchToCustome
             </button>
           );
         })}
-
-        {/* Customer Portal Entry link */}
-        {onSwitchToCustomer && (
-          <div className="pt-3">
-            <button
-              onClick={onSwitchToCustomer}
-              title={isCollapsed ? 'Customer Portal' : undefined}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold text-blue-700 bg-blue-50/70 hover:bg-blue-100 border border-blue-200/60 transition-all group"
-            >
-              <ShoppingBag className="w-4 h-4 text-blue-600 shrink-0" />
-              {!isCollapsed && (
-                <>
-                  <span className="truncate">Customer Portal</span>
-                  <ExternalLink className="w-3 h-3 ml-auto text-blue-400 group-hover:text-blue-700" />
-                </>
-              )}
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Sidebar Footer info */}

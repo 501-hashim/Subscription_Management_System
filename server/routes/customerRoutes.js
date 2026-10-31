@@ -73,6 +73,12 @@ router.get('/dashboard', async (req, res) => {
           company: customer.company,
           email: customer.email,
         },
+        user: {
+          id: customer.id,
+          name: customer.name,
+          company: customer.company,
+          email: customer.email,
+        },
         metrics: {
           totalAvailableProducts,
           totalActiveSubscriptions: activeSubscriptions.length,

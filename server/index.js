@@ -22,8 +22,9 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Mount Customer Routes
+// Mount Customer & User Routes
 app.use('/api/customer', customerRoutes);
+app.use('/api/user', customerRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

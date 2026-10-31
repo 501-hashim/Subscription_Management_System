@@ -5,7 +5,6 @@ import { Navbar } from './Navbar';
 export function Layout({ 
   activeTab, 
   onSelectTab, 
-  onSwitchToCustomer, 
   currentUser,
   onLogout,
   children 
@@ -21,7 +20,6 @@ export function Layout({
         activeTab={activeTab}
         onSelectTab={onSelectTab}
         isCollapsed={isCollapsed}
-        onSwitchToCustomer={onSwitchToCustomer}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -30,7 +28,6 @@ export function Layout({
           onToggleSidebar={() => setIsCollapsed(!isCollapsed)}
           globalSearch={globalSearch}
           setGlobalSearch={setGlobalSearch}
-          onSwitchToCustomer={onSwitchToCustomer}
           currentUser={currentUser}
           onLogout={onLogout}
         />
