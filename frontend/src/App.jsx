@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Layout } from './components/layout/Layout';
 import { LoginPage } from './pages/Auth/LoginPage';
 import { CustomerPortal } from './pages/Portal/CustomerPortal';
+import { UserBlankPortal } from './pages/Portal/UserBlankPortal';
 import { DashboardPage } from './pages/Dashboard/DashboardPage';
 import { CustomersPage } from './pages/Customers/CustomersPage';
 import { ProductsPage } from './pages/Products/ProductsPage';
@@ -171,7 +172,44 @@ export function App() {
   }
 
   // 3. Admin / Staff view: Complete Operations & Billing Suite
-  const isAdmin = currentUser?.role === 'Super Admin';
+  // Determine if the current user has Administrative privileges
+  const isAdmin = Boolean(
+    currentUser && (
+      currentUser.role === 'Super Admin' ||
+      currentUser.role === 'admin' ||
+      currentUser.userType === 'admin' ||
+      currentUser.user_type === 'admin' ||
+      (currentUser.role && currentUser.role.toLowerCase() === 'admin') ||
+      (currentUser.role && currentUser.role.toLowerCase() === 'super admin') ||
+      (currentUser.roleTitle && currentUser.roleTitle.toLowerCase().includes('admin')) ||
+      currentUser.email?.toLowerCase() === 'hashim@brightloop.io'
+    )
+  );
+
+  // 3. Standard User View: Blank Option (Dedicated placeholder while user interface is in progress)
+  if (!isAdmin) {
+    return (
+      <>
+        <CursorFollower enableSpotlight={false} enableCursorDot={true} />
+        <UserBlankPortal
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          onSwitchToAdmin={() => {
+            const adminUser = users.find((u) => u.role === 'Super Admin') || {
+              id: 'USR-01',
+              name: 'Hashim (Lead)',
+              email: 'hashim@brightloop.io',
+              role: 'Super Admin',
+              userType: 'admin',
+              department: 'Engineering',
+              status: 'Active',
+            };
+            handleSwitchUser(adminUser);
+          }}
+        />
+      </>
+    );
+  }
 
   return (
     <>

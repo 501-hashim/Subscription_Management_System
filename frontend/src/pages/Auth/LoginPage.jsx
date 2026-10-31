@@ -138,7 +138,7 @@ export function LoginPage({
       role: 'Super Admin',
       department: 'Engineering',
       organization: 'Brightloop Technologies Inc.',
-      badge: 'Admin',
+      badge: 'Admin (Full)',
       badgeColor: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
       avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=hashim',
     },
@@ -149,7 +149,7 @@ export function LoginPage({
       role: 'Billing Manager',
       department: 'Finance',
       organization: 'Brightloop Technologies Inc.',
-      badge: 'Billing Lead',
+      badge: 'User (Blank)',
       badgeColor: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
       avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarah',
     },
@@ -160,7 +160,7 @@ export function LoginPage({
       role: 'Sales Representative',
       department: 'Sales',
       organization: 'Brightloop Technologies Inc.',
-      badge: 'Sales Rep',
+      badge: 'User (Blank)',
       badgeColor: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
       avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=liam',
     },
@@ -618,7 +618,7 @@ export function LoginPage({
                       )}
                     </div>
                     <div className="text-[10px] text-slate-400 mt-0.5 leading-snug">
-                      Create new company workspace
+                      Create company workspace (Admin Access)
                     </div>
                   </div>
                 </button>
@@ -653,7 +653,7 @@ export function LoginPage({
                       )}
                     </div>
                     <div className="text-[10px] text-slate-400 mt-0.5 leading-snug">
-                      Join as staff or individual
+                      Join as user (User Blank Workspace)
                     </div>
                   </div>
                 </button>
