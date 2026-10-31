@@ -4,23 +4,22 @@ import {
   DollarSign, 
   CreditCard, 
   AlertTriangle, 
-  ChevronRight,
-  PlusCircle,
-  Receipt,
-  ArrowUpRight,
-  TrendingUp,
-  Target,
-  Sparkles,
-  Zap,
-  Calendar,
-  CheckCircle2,
-  GitBranch,
-  Network,
-  Package,
-  Layers,
-  Flame,
-  Award,
-  SlidersHorizontal
+  ChevronRight, 
+  PlusCircle, 
+  Receipt, 
+  TrendingUp, 
+  Target, 
+  Sparkles, 
+  Zap, 
+  Calendar, 
+  GitBranch, 
+  Network, 
+  Package, 
+  Flame, 
+  Award, 
+  PieChart as PieIcon,
+  CircleDot,
+  CheckCircle2
 } from 'lucide-react';
 import { StatsCard } from '../../components/common/StatsCard';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/common/Card';
@@ -49,10 +48,11 @@ export function DashboardPage({
   const [activeMetric, setActiveMetric] = useState('mrr'); // 'mrr' | 'arr' | 'newSubscriptions'
   const [timeRange, setTimeRange] = useState('6M'); // '3M' | '6M'
 
-  // Dendrogram Active Hover/Selection State
-  const [selectedCluster, setSelectedCluster] = useState('all'); // 'all' | 'core' | 'addons' | 'infra'
+  // Dendrogram Representation Mode: 'bracket' (Phylogenetic Tree) | 'radial' (Concentric Cluster Rings)
+  const [dendroMode, setDendroMode] = useState('bracket');
+  const [hoveredNode, setHoveredNode] = useState(null);
 
-  // Comprehensive 6-month historical & forecast dataset for dynamic switching
+  // 6-month historical & forecast dataset
   const chartDatasets = {
     '6M': [
       { month: 'Feb', mrr: 19800, arr: 237600, newSubscriptions: 51, growth: '+7.6%' },
@@ -70,80 +70,69 @@ export function DashboardPage({
   };
 
   const currentChartData = chartDatasets[timeRange];
-
   const overdueInvoices = invoices.filter((inv) => inv.status.toLowerCase() === 'overdue');
   const recentSubscriptions = subscriptions.slice(0, 3);
 
-  // Target Goal Calculation
   const currentMrr = 28450;
   const targetMrr = 35000;
   const progressPercent = Math.min(100, Math.round((currentMrr / targetMrr) * 100));
 
-  // Product Hierarchical Dendrogram Clusters & Sales Performance
-  const dendrogramClusters = [
+  // Product Dendrogram Data Structure
+  const productsDendro = [
     {
-      id: 'core',
+      id: 'prod-core',
+      name: 'Brightloop Core Suite',
+      code: 'BL-CORE',
       category: 'Core SaaS Platforms',
+      shareNum: 65,
       share: '65%',
-      salesAmount: 18492,
-      growth: '+14.2%',
-      color: '#3b82f6', // blue
-      products: [
-        {
-          name: 'Brightloop Core Suite',
-          code: 'BL-CORE',
-          tier: 'Enterprise Flagship',
-          sales: '$18,492',
-          units: '780 active',
-          badge: 'Top Seller #1',
-          status: 'excellent',
-          sparkColor: 'bg-emerald-500',
-        },
-      ],
+      sales: 18492,
+      units: '780 subscriptions',
+      badge: '★ Best Seller #1',
+      growth: '+14.2% YoY',
+      color: '#2563eb', // blue
+      ringColor: 'stroke-blue-600',
+      fillColor: 'bg-blue-600',
+      textColor: 'text-blue-600',
+      desc: 'All-in-one recurring revenue billing & contract engine',
     },
     {
-      id: 'addons',
+      id: 'prod-anly',
+      name: 'Advanced Analytics Addon',
+      code: 'BL-ANLY',
       category: 'Intelligence & Add-ons',
+      shareNum: 20,
       share: '20%',
-      salesAmount: 5690,
-      growth: '+24.8%',
+      sales: 5690,
+      units: '420 subscriptions',
+      badge: '🔥 Highest Velocity',
+      growth: '+24.8% YoY',
       color: '#8b5cf6', // purple
-      products: [
-        {
-          name: 'Advanced Analytics Addon',
-          code: 'BL-ANLY',
-          tier: 'Growth Accelerator',
-          sales: '$5,690',
-          units: '420 active',
-          badge: 'Fastest Growth',
-          status: 'high-velocity',
-          sparkColor: 'bg-purple-500',
-        },
-      ],
+      ringColor: 'stroke-purple-600',
+      fillColor: 'bg-purple-600',
+      textColor: 'text-purple-600',
+      desc: 'Predictive churn and customer LTV forecasting',
     },
     {
-      id: 'infra',
+      id: 'prod-gate',
+      name: 'Dedicated API Gateway',
+      code: 'BL-GATE',
       category: 'Dedicated Infrastructure',
+      shareNum: 15,
       share: '15%',
-      salesAmount: 4268,
-      growth: '+18.5%',
+      sales: 4268,
+      units: '33 subscriptions',
+      badge: '⚡ Top Retention (99.9%)',
+      growth: '+18.5% YoY',
       color: '#06b6d4', // cyan
-      products: [
-        {
-          name: 'Dedicated API Gateway',
-          code: 'BL-GATE',
-          tier: 'DevOps & Webhooks',
-          sales: '$4,268',
-          units: '33 scale',
-          badge: 'Top Retention',
-          status: 'stable',
-          sparkColor: 'bg-cyan-500',
-        },
-      ],
+      ringColor: 'stroke-cyan-500',
+      fillColor: 'bg-cyan-500',
+      textColor: 'text-cyan-600',
+      desc: 'High-throughput webhook delivery & dedicated VPC',
     },
   ];
 
-  // Custom Glassmorphic Tooltip
+  // Tooltip for Revenue Graph
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
@@ -197,7 +186,7 @@ export function DashboardPage({
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Dendrogram product sales clustering alongside real-time monthly revenue trajectory.
+            Product sales dendrogram breakdown paired with real-time revenue velocity.
           </p>
         </div>
 
@@ -285,149 +274,224 @@ export function DashboardPage({
       {/* SPLIT SECTION: LEFT = PRODUCT DENDROGRAM | RIGHT = REVENUE TRAJECTORY GRAPH */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         
-        {/* LEFT COLUMN (5 of 12): PRODUCT SALES DENDROGRAM HIERARCHY */}
+        {/* LEFT COLUMN (5 of 12): DENDROGRAM PRODUCT SALES BREAKDOWN */}
         <Card className="xl:col-span-5 border-slate-200 shadow-sm overflow-hidden flex flex-col h-full">
-          <CardHeader className="p-4 pb-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <CardHeader className="p-4 pb-3 border-b border-slate-100 flex flex-row items-center justify-between bg-slate-50/50">
             <div>
               <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <GitBranch className="w-4 h-4 text-indigo-600" />
                 Product Sales Dendrogram
               </CardTitle>
               <CardDescription className="text-[11px] text-slate-500">
-                Hierarchical clustering showing top sales generators & revenue share
+                Hierarchical phylogenetic clustering of catalog revenue
               </CardDescription>
             </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
-              Sales Tree
-            </span>
+
+            {/* Representation Switcher */}
+            <div className="bg-slate-200/80 p-0.5 rounded-lg flex items-center border border-slate-300">
+              <button
+                onClick={() => setDendroMode('bracket')}
+                title="Phylogenetic Tree View"
+                className={`px-2 py-1 rounded text-[10px] font-bold transition-all flex items-center gap-1 ${
+                  dendroMode === 'bracket'
+                    ? 'bg-white text-indigo-700 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <GitBranch className="w-3 h-3" />
+                <span>Tree</span>
+              </button>
+              <button
+                onClick={() => setDendroMode('radial')}
+                title="Radial Cluster Rings"
+                className={`px-2 py-1 rounded text-[10px] font-bold transition-all flex items-center gap-1 ${
+                  dendroMode === 'radial'
+                    ? 'bg-white text-indigo-700 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <PieIcon className="w-3 h-3" />
+                <span>Radial</span>
+              </button>
+            </div>
           </CardHeader>
 
           <CardContent className="p-4 flex-1 space-y-4">
-            {/* DENDROGRAM VISUAL TREE CANVAS */}
-            <div className="relative pt-2">
-              {/* ROOT NODE: Total Catalog Sales */}
-              <div 
-                onClick={() => setSelectedCluster('all')}
-                className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                  selectedCluster === 'all'
-                    ? 'bg-linear-to-r from-blue-900 to-indigo-950 text-white border-blue-500 shadow-md ring-2 ring-blue-400/20'
-                    : 'bg-slate-900 text-white border-slate-800 hover:border-slate-700'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-blue-600/40 text-blue-300 flex items-center justify-center font-bold text-xs border border-blue-400/30">
-                    <Network className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-blue-300 block">
-                      Root: Total Catalog Sales
+            
+            {/* REPRESENTATION 1: PHYLOGENETIC BRACKET DENDROGRAM (True Orthogonal Tree) */}
+            {dendroMode === 'bracket' && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                {/* Visual Orthogonal Bracket Diagram with Interactive Product Nodes */}
+                <div className="relative pt-1">
+                  
+                  {/* Root Node Header */}
+                  <div className="flex items-center justify-between mb-3 bg-slate-900 text-white p-2.5 px-3.5 rounded-xl border border-slate-800 shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-md bg-blue-600/40 text-blue-300 flex items-center justify-center font-bold text-xs border border-blue-400/30">
+                        <Network className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="text-xs font-bold">Catalog Root Node</span>
+                    </div>
+                    <span className="text-xs font-extrabold text-emerald-400 font-mono">
+                      {formatCurrency(currentMrr)} (100%)
                     </span>
-                    <span className="font-extrabold text-sm">{formatCurrency(currentMrr)} MRR</span>
                   </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                    100% Volume
-                  </span>
-                </div>
-              </div>
 
-              {/* BRANCH CONNECTOR TREE (Visual Dendrogram Connectors) */}
-              <div className="pl-6 pt-3 relative space-y-4 before:absolute before:left-3.5 before:top-0 before:bottom-6 before:w-0.5 before:bg-linear-to-b before:from-blue-600 before:via-indigo-400 before:to-cyan-400">
-                {dendrogramClusters.map((cluster) => {
-                  const isSelected = selectedCluster === 'all' || selectedCluster === cluster.id;
+                  {/* Orthogonal Bracket Tree SVG + HTML Nodes */}
+                  <div className="relative pl-6 space-y-3.5 before:absolute before:left-3 before:top-2 before:bottom-6 before:w-0.5 before:bg-slate-300">
+                    {productsDendro.map((prod, index) => {
+                      const isHovered = hoveredNode === prod.id;
 
-                  return (
-                    <div 
-                      key={cluster.id} 
-                      className={`relative pl-4 transition-all duration-200 ${
-                        !isSelected ? 'opacity-40 grayscale-50' : 'opacity-100'
-                      }`}
-                      onClick={() => setSelectedCluster(cluster.id)}
-                    >
-                      {/* Horizontal Connector Branch Bar */}
-                      <div className="absolute -left-2.5 top-4 w-4 h-0.5 bg-slate-300 rounded" />
-
-                      {/* Cluster Category Node */}
-                      <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-xs hover:border-blue-400 transition-all cursor-pointer">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span 
-                              className="w-2.5 h-2.5 rounded-full shadow-xs" 
-                              style={{ backgroundColor: cluster.color }} 
-                            />
-                            <span className="font-bold text-xs text-slate-800">{cluster.category}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
-                              {cluster.share} of Sales
-                            </span>
-                            <span className="text-[10px] font-bold text-emerald-600">
-                              {cluster.growth}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Progress Share Bar */}
-                        <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden mb-2.5">
+                      return (
+                        <div
+                          key={prod.id}
+                          onMouseEnter={() => setHoveredNode(prod.id)}
+                          onMouseLeave={() => setHoveredNode(null)}
+                          className={`relative pl-4 transition-all duration-200 cursor-pointer ${
+                            hoveredNode && !isHovered ? 'opacity-60' : 'opacity-100'
+                          }`}
+                        >
+                          {/* Horizontal Dendrogram Branch Arm with Distance Dot */}
+                          <div className="absolute -left-3 top-5 w-4 h-0.5 bg-slate-300" />
                           <div 
-                            className="h-1.5 rounded-full transition-all duration-500"
-                            style={{ 
-                              width: cluster.share, 
-                              backgroundColor: cluster.color 
-                            }}
+                            className="absolute -left-1 top-4 w-2 h-2 rounded-full border-2 border-white shadow-xs"
+                            style={{ backgroundColor: prod.color }} 
                           />
-                        </div>
 
-                        {/* LEAF NODES (Product Details in this cluster) */}
-                        <div className="space-y-1.5 pt-1 border-t border-slate-100">
-                          {cluster.products.map((p, idx) => (
-                            <div 
-                              key={idx}
-                              className="flex items-center justify-between text-[11px] p-1.5 rounded-lg bg-slate-50/80 hover:bg-blue-50/50 transition-colors"
-                            >
+                          {/* Product Box Leaf Node */}
+                          <div className={`p-3 rounded-xl border transition-all ${
+                            isHovered 
+                              ? 'bg-blue-50/70 border-blue-400 shadow-md ring-1 ring-blue-300' 
+                              : 'bg-white border-slate-200 shadow-xs hover:border-slate-300'
+                          }`}>
+                            <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <Award className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                <span 
+                                  className="w-2.5 h-2.5 rounded-full shrink-0" 
+                                  style={{ backgroundColor: prod.color }} 
+                                />
                                 <div>
-                                  <span className="font-semibold text-slate-900 block leading-tight">{p.name}</span>
-                                  <span className="text-[10px] text-slate-400 font-mono">{p.units}</span>
+                                  <h4 className="text-xs font-bold text-slate-900 leading-tight">
+                                    {prod.name}
+                                  </h4>
+                                  <span className="text-[10px] text-slate-400 font-medium">
+                                    {prod.category} • {prod.units}
+                                  </span>
                                 </div>
                               </div>
                               <div className="text-right">
-                                <span className="font-extrabold text-slate-900 block">{p.sales}</span>
-                                <span className="text-[9px] font-bold text-blue-600 uppercase tracking-tight">
-                                  {p.badge}
+                                <span className="text-xs font-black text-slate-900 block font-mono">
+                                  {formatCurrency(prod.sales)}
+                                </span>
+                                <span className="text-[10px] font-bold text-emerald-600">
+                                  {prod.share} share
                                 </span>
                               </div>
                             </div>
-                          ))}
+
+                            {/* Relative Weight Distance Line */}
+                            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden mt-2.5">
+                              <div 
+                                className="h-1.5 rounded-full transition-all duration-500"
+                                style={{ 
+                                  width: `${prod.shareNum}%`, 
+                                  backgroundColor: prod.color 
+                                }}
+                              />
+                            </div>
+
+                            <div className="flex items-center justify-between pt-2 mt-1.5 border-t border-slate-100 text-[10px]">
+                              <span className="font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">
+                                {prod.badge}
+                              </span>
+                              <span className="text-slate-500 font-medium">{prod.growth}</span>
+                            </div>
+                          </div>
                         </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Phylogenetic Distance Scale (Horizontal Axis) */}
+                  <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                    <span>0% Cluster</span>
+                    <span className="text-slate-300">─── 25% ───</span>
+                    <span className="text-slate-300">─── 50% ───</span>
+                    <span>100% Volume</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* REPRESENTATION 2: RADIAL CONCENTRIC CLUSTERS (Target Rings View) */}
+            {dendroMode === 'radial' && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                {/* Radial Concentric Rings Visual */}
+                <div className="flex flex-col items-center justify-center py-2">
+                  <div className="relative w-44 h-44 flex items-center justify-center">
+                    {/* Outer Ring: Core Suite (65%) */}
+                    <div className="absolute inset-0 rounded-full border-4 border-dashed border-blue-500/40 animate-spin-slow" />
+                    <div className="absolute inset-2 rounded-full border-4 border-blue-600/70" />
+
+                    {/* Middle Ring: Analytics (20%) */}
+                    <div className="absolute inset-7 rounded-full border-4 border-purple-500/80" />
+
+                    {/* Inner Ring: Dedicated API Gateway (15%) */}
+                    <div className="absolute inset-12 rounded-full border-4 border-cyan-400" />
+
+                    {/* Center Core Hub */}
+                    <div className="relative z-10 w-16 h-16 rounded-full bg-slate-900 text-white flex flex-col items-center justify-center text-center p-1 shadow-lg border border-slate-700">
+                      <span className="text-[9px] font-bold text-blue-400">TOTAL</span>
+                      <span className="text-[11px] font-black leading-tight">$28.4k</span>
+                    </div>
+                  </div>
+                  <span className="text-[11px] text-slate-500 font-medium mt-2">
+                    Concentric Cluster Hierarchy by Revenue Volume
+                  </span>
+                </div>
+
+                {/* Legend Chips */}
+                <div className="space-y-2 pt-1 border-t border-slate-100">
+                  {productsDendro.map((prod) => (
+                    <div 
+                      key={prod.id}
+                      className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100 text-xs"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span 
+                          className="w-3 h-3 rounded-full shrink-0" 
+                          style={{ backgroundColor: prod.color }} 
+                        />
+                        <span className="font-bold text-slate-800">{prod.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-slate-900">{formatCurrency(prod.sales)}</span>
+                        <span className="text-[10px] font-bold text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200">
+                          {prod.share}
+                        </span>
                       </div>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Dendrogram Insights Footnote */}
-            <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-[11px] text-blue-900 flex items-center justify-between">
+            {/* Performance Summary Banner */}
+            <div className="p-2.5 px-3 bg-blue-50/70 rounded-xl border border-blue-100 text-[11px] text-blue-900 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Flame className="w-4 h-4 text-blue-600 shrink-0" />
                 <span>
-                  <strong>Core Suite</strong> generates 65% of monthly revenue with 99.2% retention.
+                  <strong>Core Suite</strong> is the primary revenue anchor ({productsDendro[0].share} volume).
                 </span>
               </div>
-              <button
-                onClick={() => setSelectedCluster('all')}
-                className="text-[10px] font-bold text-blue-700 hover:underline shrink-0"
-              >
-                Reset View
-              </button>
+              <span className="text-[10px] font-bold text-blue-700 bg-white px-2 py-0.5 rounded shadow-2xs">
+                Top Tier
+              </span>
             </div>
           </CardContent>
         </Card>
 
-        {/* RIGHT COLUMN (7 of 12): REVENUE TRAJECTORY GRAPH (SHIFTED RIGHT) */}
+        {/* RIGHT COLUMN (7 of 12): REVENUE VELOCITY GRAPH (SHIFTED RIGHT) */}
         <Card className="xl:col-span-7 border-slate-200 shadow-sm overflow-hidden flex flex-col h-full">
           {/* Graph Header: Title, Metric Switchers, and Period Selectors */}
           <div className="p-4 pb-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-linear-to-b from-slate-50/50 to-white">
@@ -544,7 +608,7 @@ export function DashboardPage({
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={currentChartData} margin={{ top: 10, right: 10, left: -5, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="auroraRevenueGradient2" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="auroraRevenueGradient3" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.35} />
                       <stop offset="60%" stopColor="#6366f1" stopOpacity={0.12} />
                       <stop offset="100%" stopColor="#06b6d4" stopOpacity={0.0} />
@@ -577,7 +641,7 @@ export function DashboardPage({
                     dot={{ r: 3.5, fill: '#2563eb', strokeWidth: 2, stroke: '#ffffff' }}
                     activeDot={{ r: 5, fill: '#1d4ed8', stroke: '#ffffff', strokeWidth: 2 }}
                     fillOpacity={1}
-                    fill="url(#auroraRevenueGradient2)"
+                    fill="url(#auroraRevenueGradient3)"
                   />
                 </AreaChart>
               </ResponsiveContainer>
