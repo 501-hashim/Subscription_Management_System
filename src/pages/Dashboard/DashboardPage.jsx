@@ -17,11 +17,14 @@ import {
   Package, 
   Flame, 
   Award, 
-  CircleDot,
   CheckCircle2,
-  ArrowDown,
+  Globe,
+  Radio,
+  RefreshCw,
+  Server,
   Layers,
-  ArrowUpRight
+  ArrowUpRight,
+  ShieldCheck
 } from 'lucide-react';
 import { StatsCard } from '../../components/common/StatsCard';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/common/Card';
@@ -50,6 +53,18 @@ export function DashboardPage({
   const [activeMetric, setActiveMetric] = useState('mrr'); // 'mrr' | 'arr' | 'newSubscriptions'
   const [timeRange, setTimeRange] = useState('6M'); // '3M' | '6M'
   const [hoveredBox, setHoveredBox] = useState(null);
+
+  // Settlement Gateway Sync Simulation
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState('Just now');
+
+  const handleSyncGateways = () => {
+    setIsSyncing(true);
+    setTimeout(() => {
+      setIsSyncing(false);
+      setLastSyncTime('30s ago');
+    }, 800);
+  };
 
   // 6-month historical & forecast dataset
   const chartDatasets = {
@@ -134,6 +149,46 @@ export function DashboardPage({
     },
   ];
 
+  // Global Geographic Revenue Distribution Hub Data
+  const geographicHubs = [
+    {
+      region: 'North America Hub',
+      flag: '🇺🇸',
+      hubLocation: 'Austin, TX & Springfield, OR',
+      accounts: 'Acme Corp, SolarDrive',
+      share: '55%',
+      mrr: 15647,
+      color: 'bg-blue-600',
+      barColor: '#2563eb',
+      edgeLatency: '12ms · US-East',
+      health: 'Optimal',
+    },
+    {
+      region: 'Europe Central Hub',
+      flag: '🇪🇺',
+      hubLocation: 'Berlin, Germany & Dublin',
+      accounts: 'NovaTech Solutions Ltd',
+      share: '30%',
+      mrr: 8535,
+      color: 'bg-purple-600',
+      barColor: '#8b5cf6',
+      edgeLatency: '18ms · EU-Central',
+      health: 'Optimal',
+    },
+    {
+      region: 'Asia-Pacific Hub',
+      flag: '🌏',
+      hubLocation: 'Bengaluru, India',
+      accounts: 'Apex Global Logistics',
+      share: '15%',
+      mrr: 4268,
+      color: 'bg-cyan-500',
+      barColor: '#06b6d4',
+      edgeLatency: '42ms · AP-South',
+      health: 'Optimal',
+    },
+  ];
+
   // Tooltip for Revenue Graph
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -188,7 +243,7 @@ export function DashboardPage({
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Vertical box dendrogram structure alongside monthly recurring revenue velocity.
+            Dendrogram product sales clustering, global geographic telemetry, and recurring revenue velocity.
           </p>
         </div>
 
@@ -614,6 +669,140 @@ export function DashboardPage({
           </div>
         </Card>
       </div>
+
+      {/* NEW FEATURE: REAL-TIME CASHFLOW & GEOGRAPHIC DISTRIBUTION HUB */}
+      <Card className="border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-4 pb-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-linear-to-r from-slate-50/60 to-white">
+          <div>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                <Globe className="w-4 h-4 text-blue-600" />
+                Global Revenue Distribution & Cashflow Health Hub
+              </CardTitle>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                3 Regional VPC Hubs Active
+              </span>
+            </div>
+            <CardDescription className="text-xs text-slate-500 mt-0.5">
+              Live settlement performance, multi-currency routing, and active accounts by geographical data center.
+            </CardDescription>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSyncGateways}
+              disabled={isSyncing}
+              className="px-2.5 py-1 text-[11px] font-semibold rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 flex items-center gap-1.5 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3 h-3 text-blue-600 ${isSyncing ? 'animate-spin' : ''}`} />
+              <span>{isSyncing ? 'Syncing...' : 'Sync Gateway'}</span>
+            </button>
+            <span className="text-[10px] text-slate-400">Synced: {lastSyncTime}</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-100">
+          {/* Left Side (7 cols): Geographic Regional Distribution */}
+          <div className="lg:col-span-7 p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider text-[10px]">
+                Regional Revenue Origination
+              </span>
+              <span className="text-[11px] text-slate-500">100% Traceability</span>
+            </div>
+
+            {/* Segmented Multi-Color Continental Bar */}
+            <div className="w-full h-3 rounded-full bg-slate-100 flex overflow-hidden shadow-inner">
+              <div style={{ width: '55%' }} className="bg-blue-600 h-full hover:opacity-90 transition-opacity" title="North America: 55%" />
+              <div style={{ width: '30%' }} className="bg-purple-600 h-full hover:opacity-90 transition-opacity" title="Europe: 30%" />
+              <div style={{ width: '15%' }} className="bg-cyan-500 h-full hover:opacity-90 transition-opacity" title="Asia-Pacific: 15%" />
+            </div>
+
+            {/* 3 Regional Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              {geographicHubs.map((hub, idx) => (
+                <div key={idx} className="p-3 bg-slate-50/70 border border-slate-200/80 rounded-xl space-y-1.5 text-xs hover:bg-white hover:shadow-xs transition-all">
+                  <div className="flex items-center justify-between">
+                    <span className="text-base">{hub.flag}</span>
+                    <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-white text-slate-800 border border-slate-200">
+                      {hub.share}
+                    </span>
+                  </div>
+                  <h4 className="font-bold text-slate-900 text-xs leading-tight">{hub.region}</h4>
+                  <p className="text-[10px] text-slate-400 font-medium truncate">{hub.hubLocation}</p>
+                  
+                  <div className="pt-1.5 border-t border-slate-200/60 flex items-center justify-between text-[11px]">
+                    <span className="font-mono font-bold text-slate-900">{formatCurrency(hub.mrr)}</span>
+                    <span className="text-[9px] font-semibold text-emerald-600 flex items-center gap-0.5">
+                      <Radio className="w-2.5 h-2.5" /> {hub.edgeLatency}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right Side (5 cols): Real-Time Settlement Pipeline Health */}
+          <div className="lg:col-span-5 p-5 space-y-4 bg-slate-50/30">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider text-[10px]">
+                Cashflow Settlement Pipeline
+              </span>
+              <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                Stripe & ACH Live
+              </span>
+            </div>
+
+            <div className="space-y-2.5">
+              {/* Status Row 1: Auto-Settled */}
+              <div className="p-2.5 px-3 rounded-xl bg-white border border-slate-200 shadow-2xs flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  <div>
+                    <span className="font-bold text-slate-800 block leading-tight">Settled & Auto-Charged</span>
+                    <span className="text-[10px] text-slate-400">Credit Card & Direct ACH</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="font-black text-slate-900 font-mono block">$24,850.00</span>
+                  <span className="text-[10px] font-semibold text-emerald-600">87.3% Volume</span>
+                </div>
+              </div>
+
+              {/* Status Row 2: In Grace Period */}
+              <div className="p-2.5 px-3 rounded-xl bg-white border border-slate-200 shadow-2xs flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                  <div>
+                    <span className="font-bold text-slate-800 block leading-tight">In Grace Period (Net 15)</span>
+                    <span className="text-[10px] text-slate-400">Wire Transfers Clearing</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="font-black text-slate-900 font-mono block">$3,600.00</span>
+                  <span className="text-[10px] font-semibold text-blue-600">10.2% Volume</span>
+                </div>
+              </div>
+
+              {/* Status Row 3: Actionable / Retrying */}
+              <div className="p-2.5 px-3 rounded-xl bg-rose-50/50 border border-rose-200 shadow-2xs flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                  <div>
+                    <span className="font-bold text-rose-900 block leading-tight">Past Due / Retrying</span>
+                    <span className="text-[10px] text-rose-600 font-medium">Smart Dunning Active</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="font-black text-rose-900 font-mono block">$5,490.00</span>
+                  <span className="text-[10px] font-bold text-rose-600">1 Invoice (NovaTech)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
 
       {/* LIVE SUBSCRIPTION REGISTRY */}
       <Card>
