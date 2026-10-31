@@ -1,6 +1,5 @@
 # Brightloop Software – Subscription Management System
-> **Odoo X Make-A-Ton Virtual Hackathon Project**  
-> *Full-Stack Monorepo: Frontend Prototype & FastAPI Integration Microservice*
+> **Brightloop Subscription Hackathon Project**  `r`n> *Full-Stack Monorepo: Frontend Prototype & FastAPI Integration Microservice*
 
 ---
 
@@ -142,5 +141,5 @@ docker-compose up --build
 
 ## 👥 Hackathon Team
 - **Lead Developer:** Hashim ([@501-hashim](https://github.com/501-hashim))
-- **Event:** Odoo X Make-A-Ton Virtual Hackathon
+- **Event:** Brightloop Subscription Hackathon
 - **Organization:** Brightloop Software Inc.

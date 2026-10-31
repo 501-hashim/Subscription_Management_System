@@ -16,7 +16,7 @@ import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
 
-export function SettingsPage({ companySettings, users, onSaveCompanySettings, onAddUser }) {
+export function SettingsPage({ companySettings, users, isAdmin = true, onSaveCompanySettings, onAddUser }) {
   const [activeTab, setActiveTab] = useState('company'); // 'company', 'profile', 'users', 'roles'
   const [companyForm, setCompanyForm] = useState(companySettings);
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -291,9 +291,15 @@ export function SettingsPage({ companySettings, users, onSaveCompanySettings, on
               <h3 className="text-sm font-semibold text-slate-900">Workspace Teammates</h3>
               <p className="text-xs text-slate-500">Collaborators with administrative or billing access.</p>
             </div>
-            <Button variant="primary" size="sm" icon={Plus} onClick={() => setIsInviteModalOpen(true)}>
-              Invite User
-            </Button>
+            {isAdmin ? (
+              <Button variant="primary" size="sm" icon={Plus} onClick={() => setIsInviteModalOpen(true)}>
+                Invite Staff Member
+              </Button>
+            ) : (
+              <span className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg font-medium">
+                Only the Admin can add new staff
+              </span>
+            )}
           </div>
 
           <Card>

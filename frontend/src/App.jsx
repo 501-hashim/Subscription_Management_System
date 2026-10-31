@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Layout } from './components/layout/Layout';
 import { LoginPage } from './pages/Auth/LoginPage';
+import { CustomerPortal } from './pages/Portal/CustomerPortal';
 import { DashboardPage } from './pages/Dashboard/DashboardPage';
 import { CustomersPage } from './pages/Customers/CustomersPage';
 import { ProductsPage } from './pages/Products/ProductsPage';
@@ -12,6 +13,7 @@ import { PaymentsPage } from './pages/Payments/PaymentsPage';
 import { DiscountsPage } from './pages/Discounts/DiscountsPage';
 import { ReportsPage } from './pages/Reports/ReportsPage';
 import { SettingsPage } from './pages/Settings/SettingsPage';
+import { CursorFollower } from './components/common/CursorFollower';
 
 import {
   initialDashboardData,
@@ -63,7 +65,17 @@ export function App() {
 
   const handleLogin = (user, isNew = false) => {
     if (isNew) {
-      setUsers((prev) => [user, ...prev]);
+      if (user.role === 'Customer' || user.personaType === 'customer') {
+        setCustomers((prev) => [user, ...prev]);
+      } else {
+        setUsers((prev) => [user, ...prev]);
+      }
+      if (user.organization) {
+        setCompanySettings((prev) => ({
+          ...prev,
+          companyName: user.organization,
+        }));
+      }
     }
     setCurrentUser(user);
     setIsAuthenticated(true);
@@ -117,23 +129,48 @@ export function App() {
     setCompanySettings(updated);
   };
 
-  // If not logged in, render the login page
+  // 1. Unauthenticated view: Render the upgraded Login & Registration Page
   if (!isAuthenticated) {
     return (
-      <LoginPage
-        onLogin={handleLogin}
-        availableUsers={users}
-      />
+      <>
+        <CursorFollower enableSpotlight={true} enableCursorDot={true} />
+        <LoginPage
+          onLogin={handleLogin}
+          availableUsers={users}
+          availableCustomers={customers}
+        />
+      </>
     );
   }
 
+  // 2. Customer view: Customer Portal (Isolated from Admin settings/ops)
+  if (currentUser?.role === 'Customer' || currentUser?.personaType === 'customer') {
+    return (
+      <>
+        <CursorFollower enableSpotlight={false} enableCursorDot={true} />
+        <CustomerPortal
+          customerUser={currentUser}
+          subscriptions={subscriptions}
+          invoices={invoices}
+          payments={payments}
+          onLogout={handleLogout}
+        />
+      </>
+    );
+  }
+
+  // 3. Admin / Staff view: Complete Operations & Billing Suite
+  const isAdmin = currentUser?.role === 'Super Admin';
+
   return (
-    <Layout
-      activeTab={activeTab}
-      onSelectTab={setActiveTab}
-      currentUser={currentUser}
-      onLogout={handleLogout}
-    >
+    <>
+      <CursorFollower enableSpotlight={false} enableCursorDot={true} />
+      <Layout
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+      >
       {activeTab === 'dashboard' && (
         <DashboardPage
           dashboardData={dashboardData}
@@ -212,11 +249,13 @@ export function App() {
         <SettingsPage
           companySettings={companySettings}
           users={users}
+          isAdmin={isAdmin}
           onSaveCompanySettings={handleSaveCompanySettings}
           onAddUser={handleAddUser}
         />
       )}
     </Layout>
+    </>
   );
 }
 
