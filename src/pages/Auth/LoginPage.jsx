@@ -18,6 +18,7 @@ import {
   Briefcase,
   Globe,
   Users,
+  User,
 } from 'lucide-react';
 
 export function LoginPage({
@@ -27,14 +28,17 @@ export function LoginPage({
 }) {
   const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
   
+  // Registration Type Selector: 'user' vs 'organization'
+  const [registrationType, setRegistrationType] = useState('organization'); // 'user' | 'organization'
+
   // User Credentials State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState('Super Admin (Owner)');
-  const [department, setDepartment] = useState('Executive');
+  const [role, setRole] = useState('Billing Manager');
+  const [department, setDepartment] = useState('Finance');
   
-  // Organization State (for Registration)
+  // Organization State (for Organization Registration)
   const [organizationName, setOrganizationName] = useState('');
   const [organizationSize, setOrganizationSize] = useState('11-50 employees');
   const [organizationIndustry, setOrganizationIndustry] = useState('SaaS & Software');
@@ -125,7 +129,7 @@ export function LoginPage({
     }
 
     if (mode === 'signup') {
-      if (!organizationName.trim()) {
+      if (registrationType === 'organization' && !organizationName.trim()) {
         setErrorMessage('Please enter your organization or company name.');
         return;
       }
@@ -177,19 +181,35 @@ export function LoginPage({
           onLogin(defaultUser);
         }
       } else {
-        const newUser = {
-          id: `USR-${Date.now().toString().slice(-4)}`,
-          name: fullName.trim(),
-          email: cleanEmail,
-          role: role.split(' ')[0] === 'Super' ? 'Super Admin' : role,
-          department: department,
-          organization: organizationName.trim(),
-          organizationSize: organizationSize,
-          organizationIndustry: organizationIndustry,
-          status: 'Active',
-          lastActive: 'Just now',
-        };
-        onLogin(newUser, true);
+        if (registrationType === 'organization') {
+          const newOrgUser = {
+            id: `USR-${Date.now().toString().slice(-4)}`,
+            name: fullName.trim(),
+            email: cleanEmail,
+            role: 'Super Admin',
+            department: 'Executive',
+            organization: organizationName.trim(),
+            organizationSize: organizationSize,
+            organizationIndustry: organizationIndustry,
+            registrationType: 'organization',
+            status: 'Active',
+            lastActive: 'Just now',
+          };
+          onLogin(newOrgUser, true);
+        } else {
+          const newUser = {
+            id: `USR-${Date.now().toString().slice(-4)}`,
+            name: fullName.trim(),
+            email: cleanEmail,
+            role: role,
+            department: department,
+            organization: 'Brightloop Technologies',
+            registrationType: 'user',
+            status: 'Active',
+            lastActive: 'Just now',
+          };
+          onLogin(newUser, true);
+        }
       }
     }, 500);
   };
@@ -226,17 +246,23 @@ export function LoginPage({
           {/* Card Header */}
           <div className="text-center space-y-1.5 mb-6">
             <h1 className="text-2xl font-extrabold tracking-tight text-white">
-              {mode === 'signin' ? 'Welcome Back' : 'Create Organization Workspace'}
+              {mode === 'signin'
+                ? 'Welcome Back'
+                : registrationType === 'organization'
+                ? 'Register New Organization'
+                : 'Register User Account'}
             </h1>
             <p className="text-xs text-slate-400">
               {mode === 'signin'
                 ? 'Sign in to access your recurring subscription workspace'
-                : 'Register your organization and administrative user account'}
+                : registrationType === 'organization'
+                ? 'Set up a company workspace to manage plans, billing & team members'
+                : 'Create your individual user profile to access assigned workspaces'}
             </p>
           </div>
 
-          {/* Mode Tabs */}
-          <div className="flex p-1 rounded-xl bg-slate-950/60 border border-white/5 mb-6 text-xs font-semibold">
+          {/* Mode Tabs (Sign In vs Register) */}
+          <div className="flex p-1 rounded-xl bg-slate-950/60 border border-white/5 mb-5 text-xs font-semibold">
             <button
               type="button"
               onClick={() => {
@@ -263,7 +289,7 @@ export function LoginPage({
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              Register (User & Org)
+              Register
             </button>
           </div>
 
@@ -297,6 +323,86 @@ export function LoginPage({
             </div>
           )}
 
+          {/* SELECTOR ELEMENT: REGISTER AS USER vs ORGANIZATION */}
+          {mode === 'signup' && (
+            <div className="mb-5">
+              <label className="block text-xs font-semibold text-slate-300 mb-2">
+                Select Registration Type:
+              </label>
+              <div className="grid grid-cols-2 gap-2.5">
+                {/* Option 1: Organization */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRegistrationType('organization');
+                    setErrorMessage('');
+                  }}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-3 ${
+                    registrationType === 'organization'
+                      ? 'bg-blue-600/20 border-blue-500 text-white shadow-lg shadow-blue-500/10 ring-1 ring-blue-500/50'
+                      : 'bg-slate-950/60 border-white/10 text-slate-400 hover:text-slate-200 hover:border-white/20'
+                  }`}
+                >
+                  <div
+                    className={`p-2 rounded-xl shrink-0 ${
+                      registrationType === 'organization'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-slate-800 text-slate-400'
+                    }`}
+                  >
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <span>Organization</span>
+                      {registrationType === 'organization' && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                      )}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5 leading-snug">
+                      Create new company workspace
+                    </div>
+                  </div>
+                </button>
+
+                {/* Option 2: Individual User */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRegistrationType('user');
+                    setErrorMessage('');
+                  }}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-3 ${
+                    registrationType === 'user'
+                      ? 'bg-blue-600/20 border-blue-500 text-white shadow-lg shadow-blue-500/10 ring-1 ring-blue-500/50'
+                      : 'bg-slate-950/60 border-white/10 text-slate-400 hover:text-slate-200 hover:border-white/20'
+                  }`}
+                >
+                  <div
+                    className={`p-2 rounded-xl shrink-0 ${
+                      registrationType === 'user'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-slate-800 text-slate-400'
+                    }`}
+                  >
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <span>User</span>
+                      {registrationType === 'user' && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                      )}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5 leading-snug">
+                      Join as staff or individual
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Inline Error Alert */}
           {errorMessage && (
             <div className="mb-5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-start gap-2 animate-in fade-in">
@@ -308,15 +414,15 @@ export function LoginPage({
           {/* Auth Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             
-            {/* REGISTER MODE: SECTION 1 - ORGANIZATION DETAILS */}
-            {mode === 'signup' && (
+            {/* ORGANIZATION SPECIFIC FIELDS */}
+            {mode === 'signup' && registrationType === 'organization' && (
               <div className="space-y-3 pb-3 border-b border-white/10">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
                     <Building2 className="w-3.5 h-3.5" />
-                    Organization Profile
+                    Organization Workspace
                   </span>
-                  <span className="text-[10px] text-slate-400">Workspace Details</span>
+                  <span className="text-[10px] text-slate-400">Company Information</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -379,55 +485,67 @@ export function LoginPage({
               </div>
             )}
 
-            {/* REGISTER MODE: SECTION 2 - USER CREDENTIALS */}
+            {/* USER PROFILE FIELDS */}
             {mode === 'signup' && (
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
-                  <UserCheck className="w-3.5 h-3.5" />
-                  User Administrator Profile
-                </span>
-                <span className="text-[10px] text-slate-400">Account Owner</span>
-              </div>
-            )}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
+                    <UserCheck className="w-3.5 h-3.5" />
+                    {registrationType === 'organization' ? 'Organization Admin Profile' : 'User Details'}
+                  </span>
+                  <span className="text-[10px] text-slate-400">Personal Information</span>
+                </div>
 
-            {mode === 'signup' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                    Full Name
-                  </label>
-                  <div className="relative">
-                    <UserCheck className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Alex Morgan"
-                      className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-950/70 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-slate-500 transition-all"
-                      required
-                    />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                      Full Name
+                    </label>
+                    <div className="relative">
+                      <UserCheck className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="Alex Morgan"
+                        className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-950/70 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-slate-500 transition-all"
+                        required
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                    Account Role
-                  </label>
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    className="w-full px-3 py-2.5 text-xs bg-slate-950/70 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
-                  >
-                    <option value="Super Admin (Owner)">Super Admin (Owner)</option>
-                    <option value="Billing Manager">Billing Manager</option>
-                    <option value="Operations Lead">Operations Lead</option>
-                    <option value="Sales Representative">Sales Representative</option>
-                  </select>
+                  {registrationType === 'user' ? (
+                    <div>
+                      <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                        Designated Role
+                      </label>
+                      <select
+                        value={role}
+                        onChange={(e) => setRole(e.target.value)}
+                        className="w-full px-3 py-2.5 text-xs bg-slate-950/70 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+                      >
+                        <option value="Billing Manager">Billing Manager</option>
+                        <option value="Sales Representative">Sales Representative</option>
+                        <option value="Operations Specialist">Operations Specialist</option>
+                        <option value="Financial Analyst">Financial Analyst</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                        Administrative Authority
+                      </label>
+                      <div className="w-full px-3 py-2.5 text-xs bg-slate-950/50 border border-white/10 rounded-xl text-blue-300 font-semibold flex items-center justify-between">
+                        <span>Super Admin (Workspace Owner)</span>
+                        <ShieldCheck className="w-4 h-4 text-blue-400" />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Email Field (Shared in both Sign In and Register) */}
+            {/* Email Field */}
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1.5">
                 Business Email Address
@@ -445,7 +563,7 @@ export function LoginPage({
               </div>
             </div>
 
-            {/* Password Field (Shared in both Sign In and Register) */}
+            {/* Password Field */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-xs font-medium text-slate-300">
@@ -484,7 +602,7 @@ export function LoginPage({
                 </button>
               </div>
 
-              {/* Real-time Checklist for Signup Mode */}
+              {/* Real-time Password Rules Checklist (in signup mode) */}
               {mode === 'signup' && (
                 <div className="mt-3 p-3 bg-slate-950/60 border border-white/5 rounded-xl space-y-1.5">
                   <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
@@ -534,7 +652,13 @@ export function LoginPage({
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>{mode === 'signin' ? 'Sign In to Workspace' : 'Create Organization & Workspace'}</span>
+                  <span>
+                    {mode === 'signin'
+                      ? 'Sign In to Workspace'
+                      : registrationType === 'organization'
+                      ? 'Register Organization Workspace'
+                      : 'Register User Account'}
+                  </span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
