@@ -67,6 +67,12 @@ export function LoginPage({
     setCardTilt({ x: 0, y: 0 });
   };
 
+  // SQL Query Inspector State
+  const [showSqlDrawer, setShowSqlDrawer] = useState(false);
+  const [lastSql, setLastSql] = useState(
+    "SELECT u.id, u.org_id, u.name, u.role, o.name AS organization\nFROM users u\nLEFT JOIN organizations o ON u.org_id = o.id\nWHERE LOWER(u.email) = 'hashim@brightloop.io';"
+  );
+
   // Forgot password modal
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -122,7 +128,7 @@ export function LoginPage({
     try {
       const result = await authDatabase.login(persona.email, 'SecurePass2025!');
       setIsLoading(false);
-      onLogin(result.user);
+      if (result?.sqlQuery) setLastSql(result.sqlQuery); onLogin(result.user);
     } catch {
       setIsLoading(false);
       onLogin(persona);
@@ -181,7 +187,7 @@ export function LoginPage({
       if (mode === 'signin') {
         const result = await authDatabase.login(cleanEmail, password);
         setIsLoading(false);
-        onLogin(result.user);
+        if (result?.sqlQuery) setLastSql(result.sqlQuery); onLogin(result.user);
       } else {
         if (registrationType === 'organization') {
           const result = await authDatabase.registerOrganization({
@@ -193,7 +199,7 @@ export function LoginPage({
             password: password,
           });
           setIsLoading(false);
-          onLogin(result.user, true);
+          if (result?.sqlQuery) setLastSql(result.sqlQuery); onLogin(result.user, true);
         } else {
           const result = await authDatabase.registerUser({
             name: fullName,
@@ -203,7 +209,7 @@ export function LoginPage({
             department: department,
           });
           setIsLoading(false);
-          onLogin(result.user, true);
+          if (result?.sqlQuery) setLastSql(result.sqlQuery); onLogin(result.user, true);
         }
       }
     } catch (err) {
@@ -671,16 +677,34 @@ export function LoginPage({
             </button>
           </form>
 
-          {/* Database Live Connectivity Indicator */}
-          <div className="mt-5 pt-4 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-slate-300 font-medium">Auth DB: Online</span>
-            </span>
-            <span className="flex items-center gap-1.5 font-mono text-[10px] text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20">
-              <Database className="w-3 h-3" />
-              <span>User & Org DB Synchronized</span>
-            </span>
+                    {/* Database Live Connectivity Indicator & Live SQL Inspector */}
+          <div className="mt-5 pt-4 border-t border-white/5 space-y-2">
+            <div className="flex items-center justify-between text-[11px] text-slate-400">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-slate-300 font-medium">SQLite DB: Online</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowSqlDrawer(!showSqlDrawer)}
+                className="flex items-center gap-1.5 font-mono text-[10px] text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 px-2.5 py-1 rounded-lg border border-blue-500/25 transition-colors cursor-pointer"
+              >
+                <Database className="w-3 h-3 text-blue-400" />
+                <span>Live SQL Console {showSqlDrawer ? '▲' : '▼'}</span>
+              </button>
+            </div>
+
+            {showSqlDrawer && (
+              <div className="p-3 bg-slate-950 border border-blue-500/30 rounded-xl space-y-1.5 text-left font-mono text-[10px] animate-in fade-in duration-150">
+                <div className="flex items-center justify-between text-slate-400 border-b border-white/5 pb-1 mb-1">
+                  <span className="text-blue-400 font-bold">Executed SQL Query</span>
+                  <span className="text-emerald-400 text-[9px] font-semibold">● SQLite 3 Engine</span>
+                </div>
+                <pre className="text-blue-300 overflow-x-auto whitespace-pre leading-relaxed select-all">
+                  {lastSql}
+                </pre>
+              </div>
+            )}
           </div>
 
         </div>

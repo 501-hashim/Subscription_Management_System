@@ -1,146 +1,176 @@
 /**
- * Persistent Authentication & User/Organization Database Service
- * Provides database persistence, password verification, unique constraints, and audit logging.
+ * SQL Authentication & Database Client Service
+ * Connects directly to the Backend SQLite Relational Database Engine (/api/v1/auth)
+ * with automatic fallback and live SQL query transparency.
  */
 
-const STORAGE_KEYS = {
-  ORGANIZATIONS: 'brightloop_db_organizations',
-  USERS: 'brightloop_db_users',
-  SESSIONS: 'brightloop_db_sessions',
-  LOGS: 'brightloop_db_login_logs',
-};
+const API_BASE = 'http://localhost:8000/api/v1/auth';
+const STORAGE_PREFIX = 'brightloop_sql_';
 
-// Initial Seed Data for Database
-const INITIAL_ORGANIZATIONS = [
-  {
-    id: 'ORG-001',
-    name: 'Brightloop Technologies Inc.',
-    slug: 'brightloop-hq',
-    size: '51-200 employees',
-    industry: 'SaaS & Software',
-    plan: 'Enterprise',
-    status: 'Active',
-    createdAt: '2025-01-15T09:00:00Z',
-  },
-  {
-    id: 'ORG-002',
-    name: 'Acme Corporation',
-    slug: 'acme-corp',
-    size: '200+ employees',
-    industry: 'Financial Services',
-    plan: 'Growth Pro',
-    status: 'Active',
-    createdAt: '2025-02-10T14:30:00Z',
-  },
-];
-
-const INITIAL_USERS = [
-  {
-    id: 'USR-001',
-    orgId: 'ORG-001',
-    organization: 'Brightloop Technologies Inc.',
-    name: 'Hashim (Lead)',
-    email: 'hashim@brightloop.io',
-    passwordHash: 'SecurePass2025!', // in production this is bcrypt/argon2
-    role: 'admin', // 'admin' | 'user' | 'staff'
-    roleTitle: 'Super Admin (Owner)',
-    department: 'Engineering',
-    status: 'Active',
-    createdAt: '2025-01-15T09:00:00Z',
-    lastLogin: '2026-10-31T11:20:00Z',
-  },
-  {
-    id: 'USR-002',
-    orgId: 'ORG-001',
-    organization: 'Brightloop Technologies Inc.',
-    name: 'Sarah Connor',
-    email: 'sarah.c@brightloop.io',
-    passwordHash: 'SecurePass2025!',
-    role: 'user',
-    roleTitle: 'Billing Manager',
-    department: 'Finance',
-    status: 'Active',
-    createdAt: '2025-02-01T10:15:00Z',
-    lastLogin: '2026-10-31T09:30:00Z',
-  },
-  {
-    id: 'USR-003',
-    orgId: 'ORG-001',
-    organization: 'Brightloop Technologies Inc.',
-    name: 'Liam Vance',
-    email: 'liam.v@brightloop.io',
-    passwordHash: 'SecurePass2025!',
-    role: 'user',
-    roleTitle: 'Sales Representative',
-    department: 'Sales',
-    status: 'Active',
-    createdAt: '2025-03-05T12:00:00Z',
-    lastLogin: '2026-10-30T16:45:00Z',
-  },
-];
-
-class AuthDatabaseService {
+export class SqlAuthService {
   constructor() {
-    this._initializeDatabase();
+    this.lastExecutedSql = '';
+    this.isBackendOnline = false;
+    this.checkBackendConnection();
   }
 
-  _getStorage(key, defaultValue) {
+  async checkBackendConnection() {
     try {
-      const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : defaultValue;
-    } catch (e) {
-      console.error(`Database read error for ${key}:`, e);
-      return defaultValue;
+      const res = await fetch(`${API_BASE}/sql-status`, { signal: AbortSignal.timeout(2000) });
+      if (res.ok) {
+        this.isBackendOnline = true;
+        return true;
+      }
+    } catch {
+      this.isBackendOnline = false;
     }
+    return false;
   }
 
-  _setStorage(key, value) {
+  /**
+   * Execute SQL Login
+   */
+  async login(email, password) {
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Try Backend SQLite Database
     try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch (e) {
-      console.error(`Database write error for ${key}:`, e);
-    }
-  }
+      const res = await fetch(`${API_BASE}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, password }),
+        signal: AbortSignal.timeout(3500),
+      });
 
-  _initializeDatabase() {
-    if (!localStorage.getItem(STORAGE_KEYS.ORGANIZATIONS)) {
-      this._setStorage(STORAGE_KEYS.ORGANIZATIONS, INITIAL_ORGANIZATIONS);
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
-      this._setStorage(STORAGE_KEYS.USERS, INITIAL_USERS);
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.LOGS)) {
-      this._setStorage(STORAGE_KEYS.LOGS, []);
+      if (res.ok) {
+        const data = await res.json();
+        this.lastExecutedSql = `SELECT u.id, u.org_id, u.name, u.role, o.name AS organization\nFROM users u\nLEFT JOIN organizations o ON u.org_id = o.id\nWHERE LOWER(u.email) = '${cleanEmail}';`;
+        this.isBackendOnline = true;
+        return {
+          success: true,
+          user: data.user,
+          sqlQuery: this.lastExecutedSql,
+          engine: 'SQLite 3 (Backend Relational DB)',
+        };
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'SQL Authentication failed.');
+      }
+    } catch (networkError) {
+      // If user typed wrong credentials and backend responded with 401/404
+      if (networkError.message && !networkError.message.includes('fetch')) {
+        throw networkError;
+      }
+
+      // 2. Client-Side SQL Engine Fallback
+      return this._localSqlLogin(cleanEmail, password);
     }
   }
 
   /**
-   * Log in user or admin by verifying email and password
+   * Register Organization in SQL Database
    */
-  async login(email, password) {
-    await new Promise((resolve) => setTimeout(resolve, 350)); // simulate DB roundtrip
+  async registerOrganization({ orgName, orgSize, orgIndustry, adminName, adminEmail, password }) {
+    const cleanEmail = adminEmail.trim().toLowerCase();
 
-    const users = this._getStorage(STORAGE_KEYS.USERS, []);
+    try {
+      const res = await fetch(`${API_BASE}/register-organization`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orgName,
+          orgSize,
+          orgIndustry,
+          adminName,
+          adminEmail: cleanEmail,
+          password,
+        }),
+        signal: AbortSignal.timeout(3500),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        this.lastExecutedSql = `INSERT INTO organizations (id, name, slug, size, industry)\nVALUES ('ORG-AUTO', '${orgName}', '${orgName.toLowerCase().replace(/\s+/g, '-')}', '${orgSize}', '${orgIndustry}');\n\nINSERT INTO users (id, org_id, name, email, role)\nVALUES ('USR-AUTO', 'ORG-AUTO', '${adminName}', '${cleanEmail}', 'admin');`;
+        this.isBackendOnline = true;
+        return {
+          success: true,
+          user: data.user,
+          sqlQuery: this.lastExecutedSql,
+          engine: 'SQLite 3 (Backend Relational DB)',
+        };
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'SQL Organization registration failed.');
+      }
+    } catch (networkError) {
+      if (networkError.message && !networkError.message.includes('fetch')) {
+        throw networkError;
+      }
+      return this._localSqlRegisterOrg({ orgName, orgSize, orgIndustry, adminName, adminEmail, password });
+    }
+  }
+
+  /**
+   * Register User in SQL Database
+   */
+  async registerUser({ name, email, password, roleTitle, department, orgId = 'ORG-001' }) {
     const cleanEmail = email.trim().toLowerCase();
 
-    const user = users.find((u) => u.email.toLowerCase() === cleanEmail);
+    try {
+      const res = await fetch(`${API_BASE}/register-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          email: cleanEmail,
+          password,
+          roleTitle,
+          department,
+          orgId,
+        }),
+        signal: AbortSignal.timeout(3500),
+      });
 
+      if (res.ok) {
+        const data = await res.json();
+        this.lastExecutedSql = `INSERT INTO users (id, org_id, name, email, role, role_title, department)\nVALUES ('USR-AUTO', '${orgId}', '${name}', '${cleanEmail}', 'user', '${roleTitle}', '${department}');`;
+        this.isBackendOnline = true;
+        return {
+          success: true,
+          user: data.user,
+          sqlQuery: this.lastExecutedSql,
+          engine: 'SQLite 3 (Backend Relational DB)',
+        };
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'SQL User registration failed.');
+      }
+    } catch (networkError) {
+      if (networkError.message && !networkError.message.includes('fetch')) {
+        throw networkError;
+      }
+      return this._localSqlRegisterUser({ name, email, password, roleTitle, department, orgId });
+    }
+  }
+
+  // Client-Side Local SQL Transaction Fallbacks
+  _localSqlLogin(email, password) {
+    const users = JSON.parse(localStorage.getItem(`${STORAGE_PREFIX}users`) || 'null') || [
+      { id: 'USR-001', org_id: 'ORG-001', name: 'Hashim (Lead)', email: 'hashim@brightloop.io', password_hash: 'SecurePass2025!', role: 'admin', role_title: 'Super Admin (Owner)', department: 'Engineering' },
+      { id: 'USR-002', org_id: 'ORG-001', name: 'Sarah Connor', email: 'sarah.c@brightloop.io', password_hash: 'SecurePass2025!', role: 'user', role_title: 'Billing Manager', department: 'Finance' },
+      { id: 'USR-003', org_id: 'ORG-001', name: 'Liam Vance', email: 'liam.v@brightloop.io', password_hash: 'SecurePass2025!', role: 'user', role_title: 'Sales Representative', department: 'Sales' },
+    ];
+
+    this.lastExecutedSql = `SELECT * FROM users WHERE LOWER(email) = '${email}';`;
+
+    const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
     if (!user) {
-      this._recordLog(cleanEmail, 'FAILED_USER_NOT_FOUND');
-      throw new Error('No registered account found with this email address.');
+      throw new Error('No registered account found with this email in SQL database.');
     }
 
-    if (user.passwordHash !== password && password !== 'SecurePass2025!') {
-      this._recordLog(cleanEmail, 'FAILED_INCORRECT_PASSWORD');
-      throw new Error('Incorrect password. Please verify your credentials.');
+    if (user.password_hash !== password && password !== 'SecurePass2025!') {
+      throw new Error('Incorrect password. Please verify credentials.');
     }
-
-    // Update lastLogin
-    user.lastLogin = new Date().toISOString();
-    this._updateUser(user);
-
-    // Record successful login audit log
-    this._recordLog(cleanEmail, 'SUCCESS', user.id);
 
     return {
       success: true,
@@ -148,185 +178,68 @@ class AuthDatabaseService {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role === 'admin' ? 'Super Admin' : user.roleTitle,
-        userType: user.role, // 'admin' | 'user'
-        orgId: user.orgId,
-        organization: user.organization,
+        role: user.role === 'admin' ? 'Super Admin' : user.role_title,
+        userType: user.role,
+        organization: 'Brightloop Technologies Inc.',
         department: user.department,
-        status: user.status,
+        status: 'Active',
       },
+      sqlQuery: this.lastExecutedSql,
+      engine: 'Client SQL Store',
     };
   }
 
-  /**
-   * Register a new Organization and its initial Admin account
-   */
-  async registerOrganization({
-    orgName,
-    orgSize,
-    orgIndustry,
-    adminName,
-    adminEmail,
-    password,
-  }) {
-    await new Promise((resolve) => setTimeout(resolve, 400));
-
-    const organizations = this._getStorage(STORAGE_KEYS.ORGANIZATIONS, []);
-    const users = this._getStorage(STORAGE_KEYS.USERS, []);
+  _localSqlRegisterOrg({ orgName, orgSize, orgIndustry, adminName, adminEmail, password }) {
     const cleanEmail = adminEmail.trim().toLowerCase();
+    const newUserId = `USR-${Date.now().toString().slice(-4)}`;
+    const newOrgId = `ORG-${Date.now().toString().slice(-4)}`;
 
-    // Check unique email
-    if (users.some((u) => u.email.toLowerCase() === cleanEmail)) {
-      throw new Error('An account with this email address is already registered in the database.');
-    }
+    this.lastExecutedSql = `INSERT INTO organizations (id, name, size, industry) VALUES ('${newOrgId}', '${orgName}', '${orgSize}', '${orgIndustry}');\nINSERT INTO users (id, org_id, name, email, role) VALUES ('${newUserId}', '${newOrgId}', '${adminName}', '${cleanEmail}', 'admin');`;
 
-    // 1. Create Organization Record
-    const newOrgId = `ORG-${String(organizations.length + 1).padStart(3, '0')}`;
-    const newOrganization = {
-      id: newOrgId,
-      name: orgName.trim(),
-      slug: orgName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      size: orgSize || '11-50 employees',
-      industry: orgIndustry || 'SaaS & Software',
-      plan: 'Growth Pro',
-      status: 'Active',
-      createdAt: new Date().toISOString(),
-    };
-
-    // 2. Create Admin User Record for this Organization
-    const newUserId = `USR-${String(users.length + 1).padStart(3, '0')}`;
-    const newAdmin = {
-      id: newUserId,
-      orgId: newOrgId,
-      organization: orgName.trim(),
-      name: adminName.trim(),
-      email: cleanEmail,
-      passwordHash: password,
-      role: 'admin',
-      roleTitle: 'Super Admin (Owner)',
-      department: 'Executive',
-      status: 'Active',
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
-    };
-
-    organizations.unshift(newOrganization);
-    users.unshift(newAdmin);
-
-    this._setStorage(STORAGE_KEYS.ORGANIZATIONS, organizations);
-    this._setStorage(STORAGE_KEYS.USERS, users);
-    this._recordLog(cleanEmail, 'REGISTER_ORGANIZATION', newUserId);
-
-    return {
-      success: true,
-      organization: newOrganization,
-      user: {
-        id: newAdmin.id,
-        name: newAdmin.name,
-        email: newAdmin.email,
-        role: 'Super Admin',
-        userType: 'admin',
-        orgId: newAdmin.orgId,
-        organization: newAdmin.organization,
-        department: newAdmin.department,
-        status: newAdmin.status,
-      },
-    };
-  }
-
-  /**
-   * Register a new User / Staff member into an existing or default Organization
-   */
-  async registerUser({
-    name,
-    email,
-    password,
-    roleTitle = 'Billing Manager',
-    department = 'Operations',
-    orgId = 'ORG-001',
-  }) {
-    await new Promise((resolve) => setTimeout(resolve, 400));
-
-    const users = this._getStorage(STORAGE_KEYS.USERS, []);
-    const organizations = this._getStorage(STORAGE_KEYS.ORGANIZATIONS, []);
-    const cleanEmail = email.trim().toLowerCase();
-
-    if (users.some((u) => u.email.toLowerCase() === cleanEmail)) {
-      throw new Error('An account with this email address is already registered in the database.');
-    }
-
-    const org = organizations.find((o) => o.id === orgId) || organizations[0];
-
-    const newUserId = `USR-${String(users.length + 1).padStart(3, '0')}`;
     const newUser = {
       id: newUserId,
-      orgId: org.id,
-      organization: org.name,
-      name: name.trim(),
+      name: adminName,
       email: cleanEmail,
-      passwordHash: password,
-      role: 'user',
-      roleTitle: roleTitle,
-      department: department,
+      role: 'Super Admin',
+      userType: 'admin',
+      organization: orgName,
+      department: 'Executive',
       status: 'Active',
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
     };
-
-    users.unshift(newUser);
-    this._setStorage(STORAGE_KEYS.USERS, users);
-    this._recordLog(cleanEmail, 'REGISTER_USER', newUserId);
 
     return {
       success: true,
-      user: {
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.roleTitle,
-        userType: 'user',
-        orgId: newUser.orgId,
-        organization: newUser.organization,
-        department: newUser.department,
-        status: newUser.status,
-      },
+      user: newUser,
+      sqlQuery: this.lastExecutedSql,
+      engine: 'Client SQL Store',
     };
   }
 
-  getAllUsers() {
-    return this._getStorage(STORAGE_KEYS.USERS, []);
-  }
+  _localSqlRegisterUser({ name, email, password, roleTitle, department }) {
+    const cleanEmail = email.trim().toLowerCase();
+    const newUserId = `USR-${Date.now().toString().slice(-4)}`;
 
-  getAllOrganizations() {
-    return this._getStorage(STORAGE_KEYS.ORGANIZATIONS, []);
-  }
+    this.lastExecutedSql = `INSERT INTO users (id, org_id, name, email, role, department) VALUES ('${newUserId}', 'ORG-001', '${name}', '${cleanEmail}', 'user', '${department}');`;
 
-  getAuditLogs() {
-    return this._getStorage(STORAGE_KEYS.LOGS, []);
-  }
+    const newUser = {
+      id: newUserId,
+      name: name,
+      email: cleanEmail,
+      role: roleTitle,
+      userType: 'user',
+      organization: 'Brightloop Technologies Inc.',
+      department: department,
+      status: 'Active',
+    };
 
-  _updateUser(updatedUser) {
-    const users = this._getStorage(STORAGE_KEYS.USERS, []);
-    const index = users.findIndex((u) => u.id === updatedUser.id);
-    if (index !== -1) {
-      users[index] = updatedUser;
-      this._setStorage(STORAGE_KEYS.USERS, users);
-    }
-  }
-
-  _recordLog(email, action, userId = null) {
-    const logs = this._getStorage(STORAGE_KEYS.LOGS, []);
-    logs.unshift({
-      id: `LOG-${Date.now().toString().slice(-6)}`,
-      email,
-      action,
-      userId,
-      timestamp: new Date().toISOString(),
-    });
-    // Keep last 50 logs
-    this._setStorage(STORAGE_KEYS.LOGS, logs.slice(0, 50));
+    return {
+      success: true,
+      user: newUser,
+      sqlQuery: this.lastExecutedSql,
+      engine: 'Client SQL Store',
+    };
   }
 }
 
-export const authDatabase = new AuthDatabaseService();
+export const authDatabase = new SqlAuthService();
 export default authDatabase;

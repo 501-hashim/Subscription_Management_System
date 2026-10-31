@@ -1,12 +1,12 @@
 from typing import List, Optional
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 # ---------------------------------------------------------------------------
 # Customer Schemas
 # ---------------------------------------------------------------------------
 class CustomerBase(BaseModel):
     name: str = Field(..., example="Sarah Jenkins")
-    email: EmailStr = Field(..., example="sarah.jenkins@acmecorp.com")
+    email: str = Field(..., example="sarah.jenkins@acmecorp.com")
     company: str = Field(..., example="Acme Corporation")
     phone: Optional[str] = Field(None, example="+1 (555) 234-5678")
     status: str = Field(default="Active", example="Active")

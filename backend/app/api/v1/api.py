@@ -9,11 +9,13 @@ from app.api.v1.endpoints import (
     invoices,
     payments,
     discounts,
-    reports
+    reports,
+    auth
 )
 
 api_router = APIRouter()
 
+api_router.include_router(auth.router, prefix="/auth", tags=["SQL Authentication & Database"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard & KPIs"])
 api_router.include_router(customers.router, prefix="/customers", tags=["Customers"])
 api_router.include_router(products.router, prefix="/products", tags=["Products & Catalog"])
