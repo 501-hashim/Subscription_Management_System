@@ -6,6 +6,7 @@ import {
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { formatCurrency } from '../../utils/formatters';
+import { customerApi } from '../../services/customerApi';
 
 export function SubscriptionCheckoutModal({
   isOpen,
@@ -113,88 +114,55 @@ export function SubscriptionCheckoutModal({
     }
   };
 
-  const handleConfirmOrder = () => {
-    const timestamp = Date.now();
-    const subId = `SUB-${Math.floor(8000 + Math.random() * 1999)}`;
-    const invId = `INV-2025-${Math.floor(1090 + Math.random() * 500)}`;
-    const payId = `PAY-${Math.floor(7720 + Math.random() * 500)}`;
+  const handleConfirmOrder = async () => {
+    try {
+      const productId = itemType === 'product' ? selectedItem.id : (selectedItem.productId || selectedItem.product_id);
+      const planId = itemType === 'plan' ? selectedItem.id : null;
 
-    const today = new Date().toISOString().split('T')[0];
-    const expiry = new Date();
-    if (billingCycle === 'Annual' || selectedVariant.toLowerCase().includes('annual')) {
-      expiry.setFullYear(expiry.getFullYear() + 1);
-    } else {
-      expiry.setMonth(expiry.getMonth() + 1);
-    }
-    const expiryDate = expiry.toISOString().split('T')[0];
-
-    // Build Subscription Object
-    const newSubscription = {
-      id: subId,
-      customer: customerCompany || customerName,
-      customerId: currentCustomer?.id || `CUST-AUTO-${timestamp.toString().slice(-4)}`,
-      plan: itemType === 'plan' ? selectedItem.name : `${selectedItem.name} (${selectedVariant})`,
-      startDate: today,
-      expiryDate: expiryDate,
-      billingCycle: billingCycle,
-      amount: totalDue,
-      status: 'Active',
-      nextBillingDate: expiryDate,
-      autoRenew: true,
-      quantity: quantity,
-      productCode: selectedItem.code || selectedItem.id,
-    };
-
-    // Build Invoice Object
-    const newInvoice = {
-      id: invId,
-      customer: customerCompany || customerName,
-      customerId: newSubscription.customerId,
-      invoiceDate: today,
-      dueDate: today,
-      amount: totalDue,
-      status: 'Paid',
-      paymentMethod: paymentMethod === 'card' ? 'Credit Card (Visa ···· 4242)' : paymentMethod === 'ach' ? 'Direct Debit (ACH)' : 'Bank Wire Transfer',
-      items: [
-        {
-          desc: `${itemType === 'plan' ? selectedItem.name : selectedItem.name + ' - ' + selectedVariant} (${billingCycle})`,
-          qty: quantity,
-          unit: effectiveUnitPrice,
-          total: subtotal,
-        },
-      ],
-      discountApplied: appliedDiscount ? { code: appliedDiscount.name, amount: discountAmount } : null,
-    };
-
-    // Build Payment Object
-    const newPayment = {
-      id: payId,
-      customer: customerCompany || customerName,
-      invoiceNumber: invId,
-      paymentMethod: paymentMethod === 'card' ? 'Credit Card' : paymentMethod === 'ach' ? 'ACH Transfer' : 'Wire Transfer',
-      amount: totalDue,
-      paymentDate: new Date().toLocaleString(),
-      status: 'Completed',
-      transactionRef: `tx_${Math.random().toString(36).substring(2, 11)}`,
-    };
-
-    if (onSubscribeSuccess) {
-      onSubscribeSuccess({
-        subscription: newSubscription,
-        invoice: newInvoice,
-        payment: newPayment,
+      // Verified purchase via Express + PostgreSQL API
+      const res = await customerApi.purchaseSubscription({
+        productId,
+        planId,
+        billingCycle,
+        quantity,
+        paymentMethod: paymentMethod === 'card' ? 'Credit Card (Sandbox Verified)' : paymentMethod === 'ach' ? 'Direct Debit (ACH)' : 'Bank Wire Transfer',
+        couponCode: appliedDiscount?.name || couponCode,
       });
-    }
 
-    setSuccessData({
-      subscriptionId: subId,
-      invoiceId: invId,
-      planName: newSubscription.plan,
-      amount: totalDue,
-      billingCycle: billingCycle,
-      nextBillingDate: expiryDate,
-    });
-    setIsSuccess(true);
+      const sub = res.subscription;
+      const inv = res.invoice;
+      const pay = res.payment;
+
+      if (onSubscribeSuccess) {
+        onSubscribeSuccess({
+          subscription: {
+            ...sub,
+            customer: customerCompany || customerName,
+            plan: sub.plan_name,
+            billingCycle: sub.billing_cycle,
+            startDate: sub.start_date,
+            expiryDate: sub.expiry_date,
+            nextBillingDate: sub.next_billing_date,
+            autoRenew: sub.auto_renew,
+          },
+          invoice: inv,
+          payment: pay,
+        });
+      }
+
+      setSuccessData({
+        subscriptionId: sub.id,
+        invoiceId: inv?.id,
+        planName: sub.plan_name,
+        amount: sub.amount,
+        billingCycle: sub.billing_cycle,
+        nextBillingDate: sub.expiry_date,
+      });
+      setIsSuccess(true);
+    } catch (err) {
+      console.error('[Purchase Error]:', err);
+      alert(`Purchase could not be verified on backend: ${err.message}`);
+    }
   };
 
   return (
