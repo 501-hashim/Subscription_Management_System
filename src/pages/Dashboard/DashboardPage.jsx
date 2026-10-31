@@ -33,7 +33,7 @@ export function DashboardPage({
   const { kpis, revenueChart } = dashboardData;
 
   const overdueInvoices = invoices.filter((inv) => inv.status.toLowerCase() === 'overdue');
-  const recentSubscriptions = subscriptions.slice(0, 5);
+  const recentSubscriptions = subscriptions.slice(0, 3);
 
   return (
     <div className="space-y-6">
