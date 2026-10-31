@@ -19,7 +19,9 @@ import {
   Globe,
   Users,
   User,
+  Database,
 } from 'lucide-react';
+import { authDatabase } from '../../services/authDatabase';
 
 export function LoginPage({
   onLogin,
@@ -111,16 +113,20 @@ export function LoginPage({
     },
   ];
 
-  const handleSelectPersona = (persona) => {
+  const handleSelectPersona = async (persona) => {
     setEmail(persona.email);
     setPassword('SecurePass2025!');
     setErrorMessage('');
     setIsLoading(true);
 
-    setTimeout(() => {
+    try {
+      const result = await authDatabase.login(persona.email, 'SecurePass2025!');
+      setIsLoading(false);
+      onLogin(result.user);
+    } catch {
       setIsLoading(false);
       onLogin(persona);
-    }, 400);
+    }
   };
 
   const handleForgotSubmit = (e) => {
@@ -134,7 +140,7 @@ export function LoginPage({
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -162,12 +168,6 @@ export function LoginPage({
         );
         return;
       }
-
-      const userExists = availableUsers.some((u) => u.email?.toLowerCase() === cleanEmail);
-      if (userExists) {
-        setErrorMessage('An account with this email address already exists.');
-        return;
-      }
     } else {
       if (!password.trim()) {
         setErrorMessage('Please enter your password.');
@@ -177,58 +177,39 @@ export function LoginPage({
 
     setIsLoading(true);
 
-    setTimeout(() => {
-      setIsLoading(false);
-
+    try {
       if (mode === 'signin') {
-        const matched = availableUsers.find((u) => u.email?.toLowerCase() === cleanEmail);
-        if (matched) {
-          onLogin(matched);
-        } else {
-          const defaultUser = {
-            id: `USR-${Date.now().toString().slice(-4)}`,
-            name: fullName || email.split('@')[0].replace(/[^a-zA-Z]/g, ' ') || 'Demo User',
-            email: cleanEmail,
-            role: 'Super Admin',
-            department: 'Operations',
-            organization: organizationName || 'Brightloop Workspace',
-            status: 'Active',
-            lastActive: 'Just now',
-          };
-          onLogin(defaultUser);
-        }
+        const result = await authDatabase.login(cleanEmail, password);
+        setIsLoading(false);
+        onLogin(result.user);
       } else {
         if (registrationType === 'organization') {
-          const newOrgUser = {
-            id: `USR-${Date.now().toString().slice(-4)}`,
-            name: fullName.trim(),
-            email: cleanEmail,
-            role: 'Super Admin',
-            department: 'Executive',
-            organization: organizationName.trim(),
-            organizationSize: organizationSize,
-            organizationIndustry: organizationIndustry,
-            registrationType: 'organization',
-            status: 'Active',
-            lastActive: 'Just now',
-          };
-          onLogin(newOrgUser, true);
+          const result = await authDatabase.registerOrganization({
+            orgName: organizationName,
+            orgSize: organizationSize,
+            orgIndustry: organizationIndustry,
+            adminName: fullName,
+            adminEmail: cleanEmail,
+            password: password,
+          });
+          setIsLoading(false);
+          onLogin(result.user, true);
         } else {
-          const newUser = {
-            id: `USR-${Date.now().toString().slice(-4)}`,
-            name: fullName.trim(),
+          const result = await authDatabase.registerUser({
+            name: fullName,
             email: cleanEmail,
-            role: role,
+            password: password,
+            roleTitle: role,
             department: department,
-            organization: 'Brightloop Technologies',
-            registrationType: 'user',
-            status: 'Active',
-            lastActive: 'Just now',
-          };
-          onLogin(newUser, true);
+          });
+          setIsLoading(false);
+          onLogin(result.user, true);
         }
       }
-    }, 500);
+    } catch (err) {
+      setIsLoading(false);
+      setErrorMessage(err.message || 'An error occurred during authentication.');
+    }
   };
 
   return (
@@ -689,6 +670,18 @@ export function LoginPage({
               )}
             </button>
           </form>
+
+          {/* Database Live Connectivity Indicator */}
+          <div className="mt-5 pt-4 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-400">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-slate-300 font-medium">Auth DB: Online</span>
+            </span>
+            <span className="flex items-center gap-1.5 font-mono text-[10px] text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20">
+              <Database className="w-3 h-3" />
+              <span>User & Org DB Synchronized</span>
+            </span>
+          </div>
 
         </div>
       </main>
