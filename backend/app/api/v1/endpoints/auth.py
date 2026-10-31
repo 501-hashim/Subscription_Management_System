@@ -3,8 +3,38 @@ from pydantic import BaseModel
 from typing import Optional
 from app.db.database import get_db_connection
 import sqlite3
+import json
+import urllib.request
+from urllib.error import HTTPError, URLError
 
 router = APIRouter()
+
+def verify_google_id_token(id_token: str):
+    """
+    Verifies actual Google OAuth 2.0 ID Token directly against Google's public tokeninfo service.
+    Returns verified claims (email, name, sub, picture, email_verified) or None.
+    """
+    if not id_token or len(id_token) < 20:
+        return None
+    try:
+        url = f"https://oauth2.googleapis.com/tokeninfo?id_token={id_token}"
+        req = urllib.request.Request(
+            url, 
+            headers={"User-Agent": "Brightloop-Subscription-Management-Auth/1.0"}
+        )
+        with urllib.request.urlopen(req, timeout=5) as response:
+            if response.status == 200:
+                claims = json.loads(response.read().decode('utf-8'))
+                return {
+                    "email": claims.get("email"),
+                    "name": claims.get("name") or claims.get("given_name"),
+                    "google_id": claims.get("sub"),
+                    "avatar_url": claims.get("picture"),
+                    "email_verified": str(claims.get("email_verified", "")).lower() == "true"
+                }
+    except Exception as e:
+        return None
+    return None
 
 # Pydantic schemas for request validation
 class LoginRequest(BaseModel):
@@ -101,12 +131,27 @@ def login(payload: LoginRequest):
 def google_login(payload: GoogleLoginRequest):
     conn = get_db_connection()
     cursor = conn.cursor()
+
+    # Step 1: Check if actual Google OAuth ID token is provided and verify it with Google
+    token_verified = False
     clean_email = payload.email.strip().lower()
+    name = payload.name.strip() if payload.name else clean_email.split('@')[0].capitalize()
     google_id = payload.googleId or f"goog-{clean_email.split('@')[0]}"
     avatar = payload.avatarUrl or f"https://api.dicebear.com/7.x/avataaars/svg?seed={clean_email}"
-    name = payload.name.strip() if payload.name else clean_email.split('@')[0].capitalize()
 
-    # Search for existing user
+    if payload.token and len(payload.token) > 20:
+        claims = verify_google_id_token(payload.token)
+        if claims and claims.get("email"):
+            token_verified = True
+            clean_email = claims["email"].strip().lower()
+            if claims.get("name"):
+                name = claims["name"].strip()
+            if claims.get("google_id"):
+                google_id = claims["google_id"]
+            if claims.get("avatar_url"):
+                avatar = claims["avatar_url"]
+
+    # Step 2: Search for user in SQLite by email or google_id
     search_sql = """
     SELECT 
         u.id, u.org_id, u.name, u.email, u.role, u.role_title, u.department, u.status,
@@ -118,6 +163,8 @@ def google_login(payload: GoogleLoginRequest):
     """
     cursor.execute(search_sql, (clean_email, google_id))
     user = cursor.fetchone()
+
+    audit_action = "ACTUAL_GOOGLE_OAUTH_LOGIN_SUCCESS" if token_verified else "GOOGLE_OAUTH_LOGIN_SUCCESS"
 
     if user:
         # Existing user - link Google and update last_login
@@ -132,27 +179,28 @@ def google_login(payload: GoogleLoginRequest):
         cursor.execute(update_sql, (google_id, avatar, user["id"]))
         cursor.execute(
             "INSERT INTO login_audit_logs (email, action, user_id, auth_provider) VALUES (?, ?, ?, ?);",
-            (clean_email, "GOOGLE_OAUTH_LOGIN_SUCCESS", user["id"], "google")
+            (clean_email, audit_action, user["id"], "google")
         )
         conn.commit()
 
-        executed_sql = f"""-- 1. Query User & Workspace by Google OAuth identity
+        executed_sql = f"""-- 1. Query User & Workspace by Google OAuth identity ({'Verified via Google Tokeninfo' if token_verified else 'Google OAuth ID'})
 SELECT u.id, u.org_id, u.name, u.email, u.role, o.name AS organization
 FROM users u LEFT JOIN organizations o ON u.org_id = o.id
 WHERE LOWER(u.email) = '{clean_email}';
 
 -- 2. Update OAuth metadata & Last Login timestamp
 UPDATE users 
-SET last_login = CURRENT_TIMESTAMP, auth_provider = 'google', google_id = '{google_id}'
+SET last_login = CURRENT_TIMESTAMP, auth_provider = 'google', google_id = '{google_id}', avatar_url = '{avatar}'
 WHERE id = '{user["id"]}';
 
 -- 3. Record Audit Trail
 INSERT INTO login_audit_logs (email, action, user_id, auth_provider)
-VALUES ('{clean_email}', 'GOOGLE_OAUTH_LOGIN_SUCCESS', '{user["id"]}', 'google');"""
+VALUES ('{clean_email}', '{audit_action}', '{user["id"]}', 'google');"""
 
         response_data = {
             "success": True,
             "message": f"Successfully authenticated via Google OAuth as {user['name']}.",
+            "tokenVerified": token_verified,
             "sql_query": executed_sql,
             "authProvider": "google",
             "user": {
@@ -186,23 +234,26 @@ VALUES ('{clean_email}', 'GOOGLE_OAUTH_LOGIN_SUCCESS', '{user["id"]}', 'google')
         VALUES (?, 'ORG-001', ?, ?, 'OAuth-Google-Secured', 'user', 'Member', 'General', 'Active', 'google', ?, ?, CURRENT_TIMESTAMP);
         """
         cursor.execute(insert_sql, (new_user_id, name, clean_email, google_id, avatar))
+        
+        signup_audit = "ACTUAL_GOOGLE_OAUTH_REGISTER_SUCCESS" if token_verified else "GOOGLE_OAUTH_REGISTER_SUCCESS"
         cursor.execute(
             "INSERT INTO login_audit_logs (email, action, user_id, auth_provider) VALUES (?, ?, ?, ?);",
-            (clean_email, "GOOGLE_OAUTH_REGISTER_SUCCESS", new_user_id, "google")
+            (clean_email, signup_audit, new_user_id, "google")
         )
         conn.commit()
 
-        executed_sql = f"""-- 1. Auto-provision Google OAuth User into Relational Schema
+        executed_sql = f"""-- 1. Auto-provision Google OAuth User into Relational Schema ({'Verified via Google Tokeninfo' if token_verified else 'Google OAuth ID'})
 INSERT INTO users (id, org_id, name, email, role, role_title, auth_provider, google_id, avatar_url)
 VALUES ('{new_user_id}', 'ORG-001', '{name}', '{clean_email}', 'user', 'Member', 'google', '{google_id}', '{avatar}');
 
 -- 2. Record Audit Trail
 INSERT INTO login_audit_logs (email, action, user_id, auth_provider)
-VALUES ('{clean_email}', 'GOOGLE_OAUTH_REGISTER_SUCCESS', '{new_user_id}', 'google');"""
+VALUES ('{clean_email}', '{signup_audit}', '{new_user_id}', 'google');"""
 
         response_data = {
             "success": True,
             "message": f"Successfully registered and authenticated via Google OAuth as {name}.",
+            "tokenVerified": token_verified,
             "sql_query": executed_sql,
             "authProvider": "google",
             "user": {
